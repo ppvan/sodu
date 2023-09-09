@@ -8,63 +8,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "utils.h"
 #include <kissat.h>
-void scc(int code) {
-  if (code < 0) {
-    fprintf(stderr, "Error: %s\n", SDL_GetError());
-    exit(EXIT_FAILURE);
-  }
-}
 
-void *scp(void *handler) {
-  if (handler == NULL) {
-    fprintf(stderr, "Error: %s\n", SDL_GetError());
-    exit(EXIT_FAILURE);
-  }
-
-  return handler;
-}
+enum { UNSATISFIABLE = 10, SATISFIABLE = 20 };
 
 int main(void) {
 
-  printf("%s\n", kissat_version());
-  return 0;
-}
+  kissat *solver = kissat_init();
+#define SAT
 
-int main2(void) {
-  scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
+#ifdef SAT
+  int literals[] = {1, 2, 0, -1, 0, -2, 0};
+#else
+  int literals[] = {-1, 2, 3, 0, 1, -2, 0, -3, -2, 0};
+#endif
+  int len = sizeof(literals) / sizeof(int);
 
-  int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
-  SDL_Window *window = scp(SDL_CreateWindow("Hello SDL2", 0, 0, 640, 480, 0));
-  SDL_Renderer *renderer = scp(SDL_CreateRenderer(
-      window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
+  kissat_reserve(solver, 3);
+  for (int i = 0; i < len; i++) {
+    kissat_add(solver, literals[i]);
+  }
+  int ans = kissat_solve(solver);
 
-  bool quit = false;
-  while (!quit) {
-    SDL_Event event = {0};
-    while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-      case SDL_QUIT:
-        quit = true;
-        break;
-      default:
-        break;
-      }
-      // decide what to do with this event.
+  if (ans == SATISFIABLE) {
+    printf("SATISFIABLE: \n");
+    for (int i = 0; i < len; i++) {
+      int val = kissat_value(solver, i);
+      printf("%d = %s\n", i, val ? "true" : "false");
     }
 
-    SDL_Rect rect = {0, 0, 50, 50};
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 1);
-    SDL_RenderDrawRect(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 1);
-
-    SDL_RenderPresent(renderer);
+  } else {
+    printf("UNSATISFIABLE\n");
   }
 
-  SDL_DestroyRenderer(renderer);
-  SDL_DestroyWindow(window);
-  SDL_Quit();
+  double time = kissat_time(solver);
+  printf("Process time: %.f\n", time);
+  //   kissat_terminate(solver);
 
-  printf("QUit");
+  printf("%s\n", kissat_version());
+  return 0;
 }
