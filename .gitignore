@@ -3,6 +3,8 @@ build
 # Prerequisites
 *.d
 
+data/test*.txt
+
 # Object files
 *.o
 *.ko
