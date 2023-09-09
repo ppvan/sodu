@@ -18,3 +18,10 @@ void *scp(void *handler) {
 
   return handler;
 }
+
+int sq_number_sqrt(int num) {
+  int res = (int)sqrt(num);
+  assert(res * res == num);
+
+  return res;
+}

@@ -1,0 +1,7 @@
+---
+# Clangd format configuration
+
+# Specify the indentation style
+IndentWidth: 4
+UseTab: Never  # Use spaces, not tabs
+ColumnLimit: 120
