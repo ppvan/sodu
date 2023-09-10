@@ -1,49 +1,52 @@
 #include "utils.h"
 
 #include <SDL.h>
+#include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_video.h>
 #include <SDL_error.h>
 #include <SDL_events.h>
 #include <SDL_rect.h>
 #include <SDL_render.h>
+#include <SDL_ttf.h>
 #include <SDL_video.h>
 #include <stdbool.h>
 
 int main2(void) {
-  scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
+    scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
 
-  int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
-  SDL_Window *window = scp(SDL_CreateWindow("Hello SDL2", 0, 0, 640, 480, 0));
-  SDL_Renderer *renderer = scp(SDL_CreateRenderer(
-      window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
+    int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+    SDL_Window *window =
+        scp(SDL_CreateWindow("Hello SDL2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, 0));
+    SDL_Renderer *renderer = scp(SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
 
-  bool quit = false;
-  while (!quit) {
-    SDL_Event event = {0};
-    while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-      case SDL_QUIT:
-        quit = true;
-        break;
-      default:
-        break;
-      }
-      // decide what to do with this event.
+    bool quit = false;
+    while (!quit) {
+        SDL_Event event = {0};
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+            case SDL_QUIT:
+                quit = true;
+                break;
+            default:
+                break;
+            }
+            // decide what to do with this event.
+        }
+
+        SDL_Rect rect = {0, 0, 50, 50};
+        scc(SDL_RenderClear(renderer));
+        scc(SDL_SetRenderDrawColor(renderer, 255, 255, 255, 1));
+        scc(SDL_RenderDrawRect(renderer, &rect));
+        scc(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 1));
+
+        SDL_RenderPresent(renderer);
     }
 
-    SDL_Rect rect = {0, 0, 50, 50};
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 1);
-    SDL_RenderDrawRect(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 1);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 
-    SDL_RenderPresent(renderer);
-  }
+    printf("QUit");
 
-  SDL_DestroyRenderer(renderer);
-  SDL_DestroyWindow(window);
-  SDL_Quit();
-
-  printf("QUit");
-
-  return 0;
+    return 0;
 }

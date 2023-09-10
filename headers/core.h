@@ -21,7 +21,6 @@ typedef struct {
 
 typedef enum {
     BINOMIAL,
-    BINOMIAL_OPT,
     PRODUCT,
 } strategy_t;
 

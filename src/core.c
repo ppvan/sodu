@@ -11,8 +11,34 @@
 #include <string.h>
 
 enum { UNSATISFIABLE = 20, SATISFIABLE = 10 };
-int index_3d_to_1d(int size, int i, int j, int k);
-void index_1d_to_3d(int size, int idx, int *i, int *j, int *v);
+
+// Map (n,n,n) to 1..n^3
+// row,col,val should be in [1,n]
+static inline int index_3d_to_1d(int size, int i, int j, int v) {
+    int idx = ((i - 1) * size + (j - 1)) * size + v;
+    return idx;
+}
+
+static inline void index_1d_to_3d(int size, int idx, int *i, int *j, int *v) {
+    *i = 1;
+    *j = 1;
+    *v = 1;
+    idx--;
+    *v = idx % size + 1;
+
+    // Calculate the remaining coordinates (i and j)
+    idx /= size; // Remove v from the index
+    if (idx == 0)
+        return;
+
+    *j = idx % size + 1;
+    idx /= size; // Remove j from the index
+    if (idx == 0)
+        return;
+
+    *i = idx + 1;
+}
+
 /** Add a wrapper around kissat_add to statisics */
 void sodoku_add(sodoku_t *s, int lit) {
     kissat_add(s->solver, lit);
@@ -24,135 +50,85 @@ void sodoku_add(sodoku_t *s, int lit) {
     }
 }
 
-bool sodoku_solve_naive(sodoku_t *s);
-bool sodoku_solve_optimized(sodoku_t *s);
-
-/** Naive version, focus on correctness.
- */
-bool sodoku_solve_naive(sodoku_t *s) {
+static inline void unique_ceil(sodoku_t *s) {
     int size = s->size;
-    kissat_reserve(s->solver, size * size * size);
-
-    // Each cell 1 number.
     for (int i = 1; i <= size; i++) {
         for (int j = 1; j <= size; j++) {
-            // each ceil at least 1 number.
-            // ceil(i, j) = v1 or v2 or v3 or .... or vn
             for (int v = 1; v <= size; v++) {
                 int idx = index_3d_to_1d(size, i, j, v);
-                // kissat_add(solver, idx);
                 sodoku_add(s, idx);
-                // printf("%d ", idx);
             }
             sodoku_add(s, 0);
-            //  printf("\n");
-
-            // each ceil at most 1 number.
-            // (ceil(i, j) = v1 => ceil(i, j) != v2)
-            // and (ceil(i, j) = v1 => ceil(i, j) != v3)
-            // and ...
-
-            // <=> (ceil(i, j) != v1 or ceil(i, j) != v2)
-            // and (ceil(i, j) != v1 or ceil(i, j) != v3)
-            // ...
             for (int v = 1; v <= size; v++) {
-                for (int other_v = 1; other_v <= size; other_v++) {
-                    if (other_v == v)
-                        continue;
-
+                for (int other_v = v + 1; other_v <= size; other_v++) {
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, i, j, other_v);
-
                     sodoku_add(s, -idx1);
                     sodoku_add(s, -idx2);
                     sodoku_add(s, 0);
-
-                    // printf("%d => !%d\n", idx1, idx2);
                 }
             }
         }
     }
+}
 
-    // once in row
+static inline void unique_row(sodoku_t *s) {
+    int size = s->size;
     for (int i = 1; i <= size; i++) {
         for (int v = 1; v <= size; v++) {
-            // at least 1 in row.
-            // ceil(i, j1, v) or ceil(i, j2, v) or ...
             for (int j = 1; j <= size; j++) {
                 int idx = index_3d_to_1d(size, i, j, v);
                 sodoku_add(s, idx);
-                // printf("%d ", idx);
             }
             sodoku_add(s, 0);
-            //  printf("\n");
-
-            // at most 1 in row
             for (int j = 1; j <= size; j++) {
-                for (int other_j = 1; other_j <= size; other_j++) {
-                    if (other_j == j)
-                        continue;
+                for (int other_j = j + 1; other_j <= size; other_j++) {
 
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, i, other_j, v);
                     sodoku_add(s, -idx1);
                     sodoku_add(s, -idx2);
                     sodoku_add(s, 0);
-                    // printf("%d => !%d\n", idx1, idx2);
                 }
             }
         }
     }
-
-    // once in col
+}
+static inline void unique_col(sodoku_t *s) {
+    int size = s->size;
     for (int j = 1; j <= size; j++) {
         for (int v = 1; v <= size; v++) {
-            // at least 1 in col.
             for (int i = 1; i <= size; i++) {
                 int idx = index_3d_to_1d(size, i, j, v);
                 sodoku_add(s, idx);
-                // printf("%d ", idx);
             }
             sodoku_add(s, 0);
-            //  printf("\n");
-
-            // at most 1 in col
             for (int i = 1; i <= size; i++) {
-                for (int other_i = 1; other_i <= size; other_i++) {
-                    if (other_i == i)
-                        continue;
-
+                for (int other_i = i + 1; other_i <= size; other_i++) {
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, other_i, j, v);
                     sodoku_add(s, -idx1);
                     sodoku_add(s, -idx2);
 
                     sodoku_add(s, 0);
-                    // printf("%d => !%d\n", idx1, idx2);
                 }
             }
         }
     }
-
-    // once in sub-box:
-    // sub-box have length = sqrt(size) = x
-    // we have (size/x) = x sub part for each dimensions
+}
+static inline void unique_box(sodoku_t *s) {
+    int size = s->size;
     int sr = sq_number_sqrt(size);
-
-    // iterate sub-boxs
     for (int sub_i = 1; sub_i < size; sub_i += sr) {
         for (int sub_j = 1; sub_j < size; sub_j += sr) {
-            // at least 1 val in sub-box ceil.
             for (int v = 1; v <= size; v++) {
 
-                // iterate in sub-box
                 for (int i = sub_i; i < sub_i + sr; i++) {
                     for (int j = sub_j; j < sub_j + sr; j++) {
                         int idx = index_3d_to_1d(size, i, j, v);
                         sodoku_add(s, idx);
-                        // printf("%d ", idx);
                     }
                 }
-                //  printf("\n");
                 sodoku_add(s, 0);
             }
 
@@ -166,7 +142,7 @@ bool sodoku_solve_naive(sodoku_t *s) {
 
                         for (int other_i = sub_i; other_i < sub_i + sr; other_i++) {
                             for (int other_j = sub_j; other_j < sub_j + sr; other_j++) {
-                                if (other_i == i && other_j == j) {
+                                if (other_i * sr + other_j <= i * sr + j) {
                                     continue;
                                 }
 
@@ -184,203 +160,11 @@ bool sodoku_solve_naive(sodoku_t *s) {
             }
         }
     }
-
-    // init value.
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            if (SKU_AT(s, i, j) == 0)
-                continue;
-            // cnf require indx from 1 -> i + 1, j + 1
-            int idx = index_3d_to_1d(size, i + 1, j + 1, SKU_AT(s, i, j));
-            sodoku_add(s, idx);
-            sodoku_add(s, 0);
-        }
-    }
-
-    int ans = kissat_solve(s->solver);
-    s->stats->solve_time = kissat_time(s->solver);
-    // extract proof.
-    int i, j, v;
-    if (ans == SATISFIABLE) {
-        for (int idx = 1; idx <= size * size * size; idx++) {
-            if (kissat_value(s->solver, idx) > 0) {
-                index_1d_to_3d(size, idx, &i, &j, &v);
-                SKU_AT(s, i - 1, j - 1) = v;
-            } else {
-                assert(idx && "That variable shouldn't be true.");
-            }
-        }
-
-        return true;
-    } else {
-        return false;
-    }
 }
 
-bool sodoku_solve_optimized(sodoku_t *s) {
-    int size = s->size;
-    kissat_reserve(s->solver, size * size * size);
-
-    // Each cell 1 number.
-    for (int i = 1; i <= size; i++) {
-        for (int j = 1; j <= size; j++) {
-            // each ceil at least 1 number.
-            // ceil(i, j) = v1 or v2 or v3 or .... or vn
-            for (int v = 1; v <= size; v++) {
-                int idx = index_3d_to_1d(size, i, j, v);
-                // kissat_add(solver, idx);
-                sodoku_add(s, idx);
-                // printf("%d ", idx);
-            }
-            sodoku_add(s, 0);
-            //  printf("\n");
-
-            // each ceil at most 1 number.
-            // (ceil(i, j) = v1 => ceil(i, j) != v2)
-            // and (ceil(i, j) = v1 => ceil(i, j) != v3)
-            // and ...
-
-            // <=> (ceil(i, j) != v1 or ceil(i, j) != v2)
-            // and (ceil(i, j) != v1 or ceil(i, j) != v3)
-            // ...
-            for (int v = 1; v <= size; v++) {
-                for (int other_v = v + 1; other_v <= size; other_v++) {
-                    int idx1 = index_3d_to_1d(size, i, j, v);
-                    int idx2 = index_3d_to_1d(size, i, j, other_v);
-
-                    sodoku_add(s, -idx1);
-                    sodoku_add(s, -idx2);
-                    sodoku_add(s, 0);
-
-                    // printf("%d => !%d\n", idx1, idx2);
-                }
-            }
-        }
-    }
-
-    // once in row
-    for (int i = 1; i <= size; i++) {
-        for (int v = 1; v <= size; v++) {
-            // at least 1 in row.
-            // ceil(i, j1, v) or ceil(i, j2, v) or ...
-            for (int j = 1; j <= size; j++) {
-                int idx = index_3d_to_1d(size, i, j, v);
-                sodoku_add(s, idx);
-                // printf("%d ", idx);
-            }
-            sodoku_add(s, 0);
-            //  printf("\n");
-
-            // at most 1 in row
-            for (int j = 1; j <= size; j++) {
-                for (int other_j = j + 1; other_j <= size; other_j++) {
-
-                    int idx1 = index_3d_to_1d(size, i, j, v);
-                    int idx2 = index_3d_to_1d(size, i, other_j, v);
-                    sodoku_add(s, -idx1);
-                    sodoku_add(s, -idx2);
-                    sodoku_add(s, 0);
-                    // printf("%d => !%d\n", idx1, idx2);
-                }
-            }
-        }
-    }
-
-    // once in col
-    for (int j = 1; j <= size; j++) {
-        for (int v = 1; v <= size; v++) {
-            // at least 1 in col.
-            for (int i = 1; i <= size; i++) {
-                int idx = index_3d_to_1d(size, i, j, v);
-                sodoku_add(s, idx);
-                // printf("%d ", idx);
-            }
-            sodoku_add(s, 0);
-            //  printf("\n");
-
-            // at most 1 in col
-            for (int i = 1; i <= size; i++) {
-                for (int other_i = i + 1; other_i <= size; other_i++) {
-                    int idx1 = index_3d_to_1d(size, i, j, v);
-                    int idx2 = index_3d_to_1d(size, other_i, j, v);
-                    sodoku_add(s, -idx1);
-                    sodoku_add(s, -idx2);
-
-                    sodoku_add(s, 0);
-                    // printf("%d => !%d\n", idx1, idx2);
-                }
-            }
-        }
-    }
-
-    // once in sub-box:
-    // sub-box have length = sqrt(size) = x
-    // we have (size/x) = x sub part for each dimensions
-    int sr = sq_number_sqrt(size);
-
-    // iterate sub-boxs
-    for (int sub_i = 1; sub_i < size; sub_i += sr) {
-        for (int sub_j = 1; sub_j < size; sub_j += sr) {
-            // at least 1 val in sub-box ceil.
-            for (int v = 1; v <= size; v++) {
-
-                // iterate in sub-box
-                for (int i = sub_i; i < sub_i + sr; i++) {
-                    for (int j = sub_j; j < sub_j + sr; j++) {
-                        int idx = index_3d_to_1d(size, i, j, v);
-                        sodoku_add(s, idx);
-                        // printf("%d ", idx);
-                    }
-                }
-                //  printf("\n");
-                sodoku_add(s, 0);
-            }
-
-            // at most 1 val in sub-box
-            for (int v = 1; v <= size; v++) {
-
-                // iterate in sub-box
-                for (int i = sub_i; i < sub_i + sr; i++) {
-                    for (int j = sub_j; j < sub_j + sr; j++) {
-                        // kissat_add(solver, -index_3d_to_1d(size, i, j, v));
-
-                        for (int other_i = sub_i + 1; other_i < sub_i + sr; other_i++) {
-                            for (int other_j = sub_j + 1; other_j < sub_j + sr; other_j++) {
-                                int idx1 = index_3d_to_1d(size, i, j, v);
-                                int idx2 = index_3d_to_1d(size, other_i, other_j, v);
-                                sodoku_add(s, -idx1);
-                                sodoku_add(s, -idx2);
-                                sodoku_add(s, 0);
-
-                                // printf("%d => !%d\n", idx1, idx2);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // init value.
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            if (SKU_AT(s, i, j) == 0)
-                continue;
-            // cnf require indx from 1 -> i + 1, j + 1
-            int idx = index_3d_to_1d(size, i + 1, j + 1, SKU_AT(s, i, j));
-            sodoku_add(s, idx);
-            sodoku_add(s, 0);
-        }
-    }
-
-    int ans = kissat_solve(s->solver);
-    s->stats->solve_time = kissat_time(s->solver);
-    // extract proof.
-    if (ans == UNSATISFIABLE) {
-        return false;
-    }
-
+static inline void extract_proof(sodoku_t *s) {
     int i, j, v;
+    int size = s->size;
     for (int idx = 1; idx <= size * size * size; idx++) {
         if (kissat_value(s->solver, idx) > 0) {
             index_1d_to_3d(size, idx, &i, &j, &v);
@@ -389,42 +173,39 @@ bool sodoku_solve_optimized(sodoku_t *s) {
             assert(idx && "That variable shouldn't be true.");
         }
     }
+}
+
+static inline void apply_defined_values(sodoku_t *s) {
+    int size = s->size;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (SKU_AT(s, i, j) == 0)
+                continue;
+            // cnf require indx from 1 -> i + 1, j + 1
+            int idx = index_3d_to_1d(size, i + 1, j + 1, SKU_AT(s, i, j));
+            sodoku_add(s, idx);
+            sodoku_add(s, 0);
+        }
+    }
+}
+/** Naive version, focus on correctness.
+ */
+bool sodoku_solve_naive(sodoku_t *s) {
+    apply_defined_values(s);
+    unique_row(s);
+    unique_col(s);
+    unique_ceil(s);
+    unique_box(s);
+
+    int ans = kissat_solve(s->solver);
+    if (ans == UNSATISFIABLE) {
+        return false;
+    }
+
+    s->stats->solve_time = kissat_time(s->solver);
+    extract_proof(s);
 
     return true;
-}
-
-// Map (n,n,n) to 1..n^3
-// row,col,val should be in [1,n]
-int index_3d_to_1d(int size, int i, int j, int v) {
-    int idx = ((i - 1) * size + (j - 1)) * size + v;
-    if (idx > 729) {
-        printf("%d, %d, %d", i, j, v);
-        exit(EXIT_FAILURE);
-    }
-    return idx;
-}
-
-void index_1d_to_3d(int size, int idx, int *i, int *j, int *v) {
-    *i = 1;
-    *j = 1;
-    *v = 1;
-    // Decrement the index to match the 1-based indexing used in the mapping
-    idx--;
-
-    // Calculate the v (third dimension) coordinate
-    *v = idx % size + 1;
-
-    // Calculate the remaining coordinates (i and j)
-    idx /= size; // Remove v from the index
-    if (idx == 0)
-        return;
-
-    *j = idx % size + 1;
-    idx /= size; // Remove j from the index
-    if (idx == 0)
-        return;
-
-    *i = idx + 1;
 }
 
 sodoku_t *sodoku_init(int size) {
@@ -440,6 +221,7 @@ sodoku_t *sodoku_init(int size) {
     // init solver
     s->solver = kissat_init();
     kissat_set_option(s->solver, "quiet", 1);
+    kissat_set_option(s->solver, "sat", 1);
     // init stats
     s->stats = malloc(sizeof(statistics_t));
     assert(s->stats && "Can't malloc s->stats");
@@ -475,155 +257,17 @@ sodoku_t *sodoku_load(const char *filename) {
     return s;
 }
 
-sodoku_t *sodoku_generate(int size) {
-    size = 9;
-
-    sodoku_t *s = sodoku_init(size);
-    kissat *solver = kissat_init();
-
-    // Each cell 1 number.
-    for (int i = 1; i <= size; i++) {
-        for (int j = 1; j <= size; j++) {
-            // each ceil at least 1 number.
-            // ceil(i, j) = v1 or v2 or v3 or .... or vn
-            for (int v = 1; v <= size; v++) {
-                kissat_add(solver, index_3d_to_1d(size, i, j, v));
-            }
-            sodoku_add(s, 0);
-            // each ceil at most 1 number.
-            // (ceil(i, j) = v1 => ceil(i, j) != v2)
-            // and (ceil(i, j) = v1 => ceil(i, j) != v3)
-            // and ...
-
-            // <=> (ceil(i, j) != v1 or ceil(i, j) != v2)
-            // and (ceil(i, j) != v1 or ceil(i, j) != v3)
-            // ...
-            for (int v = 1; v <= size; v++) {
-                for (int other_v = 1; other_v <= size; other_v++) {
-                    if (other_v == v)
-                        continue;
-
-                    kissat_add(solver, -index_3d_to_1d(size, i, j, v));
-                    kissat_add(solver, -index_3d_to_1d(size, i, j, other_v));
-                    sodoku_add(s, 0);
-                }
-            }
-        }
-    }
-
-    // once in row
-    for (int i = 1; i <= size; i++) {
-        for (int v = 1; v <= size; v++) {
-            // at least 1 in row.
-            // ceil(i, j1, v) or ceil(i, j2, v) or ...
-            for (int j = 1; j <= size; j++) {
-                kissat_add(solver, index_3d_to_1d(size, i, j, v));
-            }
-            sodoku_add(s, 0);
-
-            // at most 1 in row
-            for (int j = 1; j <= size; j++) {
-                for (int other_j = 1; other_j <= size; other_j++) {
-                    if (other_j == j)
-                        continue;
-
-                    kissat_add(solver, -index_3d_to_1d(size, i, j, v));
-                    kissat_add(solver, -index_3d_to_1d(size, i, other_j, v));
-                    sodoku_add(s, 0);
-                }
-            }
-        }
-    }
-
-    // once in col
-    for (int j = 1; j <= size; j++) {
-        for (int v = 1; v <= size; v++) {
-            // at least 1 in col.
-            for (int i = 1; i <= size; i++) {
-                kissat_add(solver, index_3d_to_1d(size, i, j, v));
-            }
-            sodoku_add(s, 0);
-
-            // at most 1 in col
-            for (int i = 1; i <= size; i++) {
-                for (int other_i = 1; other_i <= size; other_i++) {
-                    if (other_i == i)
-                        continue;
-
-                    kissat_add(solver, -index_3d_to_1d(size, i, j, v));
-                    kissat_add(solver, -index_3d_to_1d(size, other_i, j, v));
-                    sodoku_add(s, 0);
-                }
-            }
-        }
-    }
-
-    // once in sub-box:
-    // sub-box have length = sqrt(size) = x
-    // we have (size/x) = x sub part for each dimensions
-    int sr = sq_number_sqrt(size);
-
-    // iterate sub-boxs
-    for (int sub_i = 1; sub_i < size; sub_i += sr) {
-        for (int sub_j = 1; sub_j < size; sub_j += sr) {
-            // at least 1 val in sub-box ceil.
-            for (int v = 1; v <= size; v++) {
-
-                // iterate in sub-box
-                for (int i = sub_i; i < sub_i + sr; i++) {
-                    for (int j = sub_j; j < sub_j + sr; j++) {
-                        kissat_add(solver, index_3d_to_1d(size, i, j, v));
-                    }
-                }
-                sodoku_add(s, 0);
-            }
-
-            // at most 1 val in sub-box
-            for (int v = 1; v <= size; v++) {
-
-                // iterate in sub-box
-                for (int i = sub_i; i < sub_i + sr; i++) {
-                    for (int j = sub_j; j < sub_j + sr; j++) {
-                        // kissat_add(solver, -index_3d_to_1d(size, i, j, v));
-
-                        for (int other_i = sub_i; other_i <= sub_i + sr; other_i++) {
-                            for (int other_j = sub_j; other_j <= sub_j + sr; other_j++) {
-                                kissat_add(solver, -index_3d_to_1d(size, i, j, v));
-                                kissat_add(solver, -index_3d_to_1d(size, other_i, other_j, v));
-                                sodoku_add(s, 0);
-                            }
-                        }
-                    }
-                }
-                sodoku_add(s, 0);
-            }
-        }
-    }
-
-    int ans = kissat_solve(solver);
-    if (ans == SATISFIABLE) {
-        printf("SATISFIABLE: \n");
-    } else {
-        printf("UNSATISFIABLE\n");
-    }
-
-    kissat_release(solver);
-
-    return s;
-}
-
 bool sodoku_solve(sodoku_t *s, strategy_t strategy) {
     switch (strategy) {
 
     case BINOMIAL: {
         return sodoku_solve_naive(s);
     }
-    case BINOMIAL_OPT: {
-        return sodoku_solve_optimized(s);
-    } break;
+
     case PRODUCT: {
         assert(0 && "Unimplemented.");
-    } break;
+        break;
+    }
     }
 
     return true;
@@ -633,6 +277,7 @@ bool sodoku_solve(sodoku_t *s, strategy_t strategy) {
 bool sodoku_valid(sodoku_t *s) {
     int size = s->size;
     int sr = sq_number_sqrt(size);
+    bool valid = true;
     bool *flags = malloc(size * sizeof(bool));
     assert(flags && "Can't malloc flags");
 
@@ -643,7 +288,8 @@ bool sodoku_valid(sodoku_t *s) {
         for (int j = 0; j < size; j++) {
             assert(SKU_AT(s, i, j) >= 1 && SKU_AT(s, i, j) <= size);
             if (flags[SKU_AT(s, i, j) - 1]) {
-                return false;
+                valid = false;
+                goto end;
             }
             flags[SKU_AT(s, i, j) - 1] = true;
         }
@@ -656,7 +302,8 @@ bool sodoku_valid(sodoku_t *s) {
         for (int j = 0; j < size; j++) {
             assert(SKU_AT(s, j, i) >= 1 && SKU_AT(s, j, i) <= size);
             if (flags[SKU_AT(s, j, i) - 1]) {
-                return false;
+                valid = false;
+                goto end;
             }
             flags[SKU_AT(s, j, i) - 1] = true;
         }
@@ -673,7 +320,8 @@ bool sodoku_valid(sodoku_t *s) {
 
                     assert(SKU_AT(s, i, j) >= 1 && SKU_AT(s, i, j) <= size);
                     if (flags[SKU_AT(s, i, j) - 1]) {
-                        return false;
+                        valid = false;
+                        goto end;
                     }
                     flags[SKU_AT(s, i, j) - 1] = true;
                 }
@@ -681,9 +329,9 @@ bool sodoku_valid(sodoku_t *s) {
         }
     }
 
-    free(flags);
+end : { free(flags); }
 
-    return true;
+    return valid;
 }
 
 void sodoku_print(sodoku_t *s, const char *name) {
