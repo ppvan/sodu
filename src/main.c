@@ -32,15 +32,15 @@ void run_test(const char *filename) {
             }
         }
 
-        bool sat = sodoku_solve(s, BINOMIAL);
+        bool sat = sodoku_solve(s, BINOMIAL_OPT);
 
+        SKU_PRINT(s);
         if (sat && sodoku_valid(s)) {
-            // SKU_PRINT(s);
             test_time += s->stats->solve_time;
-            printf("%s\tPASS: %.4fs\n", filename, s->stats->solve_time);
+            printf("PASS: %.4fs\n", s->stats->solve_time);
             printf("%d vars, %d clauses\n", s->stats->variables, s->stats->clauses);
         } else {
-            printf("%s\tFAILED\n", filename);
+            printf("tests-%02d\tFAILED\n", i);
             break;
         }
         sodoku_free(s);

@@ -244,10 +244,7 @@ bool sodoku_solve_optimized(sodoku_t *s) {
             // and (ceil(i, j) != v1 or ceil(i, j) != v3)
             // ...
             for (int v = 1; v <= size; v++) {
-                for (int other_v = 1; other_v <= size; other_v++) {
-                    if (other_v == v)
-                        continue;
-
+                for (int other_v = v + 1; other_v <= size; other_v++) {
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, i, j, other_v);
 
@@ -276,9 +273,7 @@ bool sodoku_solve_optimized(sodoku_t *s) {
 
             // at most 1 in row
             for (int j = 1; j <= size; j++) {
-                for (int other_j = 1; other_j <= size; other_j++) {
-                    if (other_j == j)
-                        continue;
+                for (int other_j = j + 1; other_j <= size; other_j++) {
 
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, i, other_j, v);
@@ -305,10 +300,7 @@ bool sodoku_solve_optimized(sodoku_t *s) {
 
             // at most 1 in col
             for (int i = 1; i <= size; i++) {
-                for (int other_i = 1; other_i <= size; other_i++) {
-                    if (other_i == i)
-                        continue;
-
+                for (int other_i = i + 1; other_i <= size; other_i++) {
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, other_i, j, v);
                     sodoku_add(s, -idx1);
@@ -352,12 +344,8 @@ bool sodoku_solve_optimized(sodoku_t *s) {
                     for (int j = sub_j; j < sub_j + sr; j++) {
                         // kissat_add(solver, -index_3d_to_1d(size, i, j, v));
 
-                        for (int other_i = sub_i; other_i < sub_i + sr; other_i++) {
-                            for (int other_j = sub_j; other_j < sub_j + sr; other_j++) {
-                                if (other_i == i && other_j == j) {
-                                    continue;
-                                }
-
+                        for (int other_i = sub_i + 1; other_i < sub_i + sr; other_i++) {
+                            for (int other_j = sub_j + 1; other_j < sub_j + sr; other_j++) {
                                 int idx1 = index_3d_to_1d(size, i, j, v);
                                 int idx2 = index_3d_to_1d(size, other_i, other_j, v);
                                 sodoku_add(s, -idx1);
@@ -631,7 +619,7 @@ bool sodoku_solve(sodoku_t *s, strategy_t strategy) {
         return sodoku_solve_naive(s);
     }
     case BINOMIAL_OPT: {
-        assert(0 && "Unimplemented.");
+        return sodoku_solve_optimized(s);
     } break;
     case PRODUCT: {
         assert(0 && "Unimplemented.");
