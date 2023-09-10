@@ -3,7 +3,8 @@ build
 # Prerequisites
 *.d
 
-data/test*.txt
+/.vscode
+*.log
 
 # Object files
 *.o

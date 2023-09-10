@@ -1,16 +1,29 @@
 #ifndef _CORE_H_
 
 #define _CORE_H_
+#include "kissat.h"
 #include <stdbool.h>
 #include <stddef.h>
-typedef struct {
-  int size;
-  int *data;
 
-  double solve_time;
+typedef struct {
+    double solve_time;
+    int variables;
+    int clauses;
+} statistics_t;
+
+typedef struct {
+    int size;
+    int *data;
+
+    kissat *solver;
+    statistics_t *stats;
 } sodoku_t;
 
-typedef enum { BINOMIAL = 0, SOME } strategy_t;
+typedef enum {
+    BINOMIAL,
+    BINOMIAL_OPT,
+    PRODUCT,
+} strategy_t;
 
 #define SKU_AT(s, i, j) (s)->data[(i) * (s)->size + (j)]
 // void index_1d_to_3d(int size, int idx, int *i, int *j, int *v);

@@ -4,6 +4,7 @@
 #include <SDL_rect.h>
 #include <SDL_render.h>
 #include <SDL_video.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,68 +13,43 @@
 #include "utils.h"
 #include <kissat.h>
 
-enum { UNSATISFIABLE = 10, SATISFIABLE = 20 };
+void run_test(const char *filename) {
+    double test_time = 0;
+    assert(filename && "Can't malloc filename.");
+    FILE *file = fopen(filename, "r");
+    int tests = 0;
+    int size = 0;
+    fscanf(file, "%d", &tests);
+    fscanf(file, "%d", &size);
 
-#if 0
+    for (int i = 0; i < tests; i++) {
 
-int main(void) {
+        // load data.
+        sodoku_t *s = sodoku_init(size);
+        for (int r = 0; r < size; r++) {
+            for (int c = 0; c < size; c++) {
+                fscanf(file, "%d", &SKU_AT(s, r, c));
+            }
+        }
 
-  kissat *solver = kissat_init();
-  kissat_set_option(solver, "quiet", 1);
+        bool sat = sodoku_solve(s, BINOMIAL);
 
-#define SAT
-
-#ifdef SAT
-  int literals[] = {1, 2, 0, -1, 0, -2, 0};
-#else
-  int literals[] = {-1, 2, 3, 0, 1, -2, 0, -3, -2, 0};
-#endif
-  int len = sizeof(literals) / sizeof(int);
-
-  kissat_reserve(solver, 3);
-  for (int i = 0; i < len; i++) {
-    kissat_add(solver, literals[i]);
-  }
-  int ans = kissat_solve(solver);
-
-  if (ans == SATISFIABLE) {
-    printf("SATISFIABLE: \n");
-    for (int i = 0; i < len; i++) {
-      int val = kissat_value(solver, i);
-      printf("%d = %s\n", i, val ? "true" : "false");
+        if (sat && sodoku_valid(s)) {
+            // SKU_PRINT(s);
+            test_time += s->stats->solve_time;
+            printf("%s\tPASS: %.4fs\n", filename, s->stats->solve_time);
+            printf("%d vars, %d clauses\n", s->stats->variables, s->stats->clauses);
+        } else {
+            printf("%s\tFAILED\n", filename);
+            break;
+        }
+        sodoku_free(s);
     }
 
-  } else {
-    printf("UNSATISFIABLE\n");
-  }
-
-  double time = kissat_time(solver);
-  printf("Process time: %.f\n", time);
-  //   kissat_terminate(solver);
-
-  printf("%s\n", kissat_version());
-  return 0;
+    printf("Total: %f\n", test_time);
 }
 
-#else
-
 int main(void) {
-
-    sodoku_t *s = sodoku_load("./data/test-01.txt");
-    // sodoku_t *s = sodoku_init(9);
-
-    SKU_PRINT(s);
-    bool sat = sodoku_solve(s, BINOMIAL);
-
-    if (sat && sodoku_valid(s)) {
-        SKU_PRINT(s);
-    } else {
-        printf("Unsolvable\n");
-    }
-
-    sodoku_free(s);
-
+    run_test("data/test-9x9.txt");
     return 0;
 }
-
-#endif

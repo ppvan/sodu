@@ -12,7 +12,7 @@ cp --update ../headers/*.h $BUILD_DIR
 cp --update ../src/*.c $BUILD_DIR
 cp --update -r ../kissat/build/libkissat.a $BUILD_DIR
 
-CFLAGS="-I./ $(pkg-config --cflags sdl2)"
+CFLAGS="-I./ $(pkg-config --cflags sdl2) -Wall -Wextra -ggdb -fanalyzer"
 LDFLAGS="-L. -lkissat -lm $(pkg-config --libs sdl2)"
 
 gcc -c ./*.c $CFLAGS

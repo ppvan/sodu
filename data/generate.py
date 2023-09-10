@@ -1,5 +1,8 @@
 import csv
+import math
 from pathlib import Path
+
+# WARN: don't expect this to works, it may destroy all test files.
 
 # Get current script location 's parrent.
 DATA_DIR = Path(__file__).parent.resolve()
@@ -10,13 +13,19 @@ with open(csv_file, "r") as file:
     csv_reader = csv.reader(file)
 
     # Skip the header row (assuming it's present)
-    next(csv_reader, None)
+    header = next(csv_reader, None)
 
     # Read the data and split it into quizzes and solutions
-    for index, row in enumerate(csv_reader):
-        quiz, solution = row
+    with open(DATA_DIR / "test-9x9.txt", "w") as f:
+        lines = []
+        size = None
 
-        with open(DATA_DIR / f"test-{index:02}.txt", "w") as f:
-            f.write("9\n")
-            f.write(" ".join(quiz) + "\n")
-            f.write(" ".join(solution) + "\n")
+        for index, row in enumerate(csv_reader):
+            quiz, _ = row
+            size = len(quiz)
+            lines.append(" ".join(quiz) + "\n")
+
+        rows = len(lines)
+        size = int(math.sqrt(size))
+        lines.insert(0, f"{rows} {size}\n")
+        f.writelines(lines)
