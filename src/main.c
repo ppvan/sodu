@@ -32,7 +32,7 @@ int main(void) {
         exit(EXIT_FAILURE);
     }
 
-    int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+    int flags = SDL_WINDOW_SHOWN;
     SDL_Window *window = scp(SDL_CreateWindow("Hello SDL2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                               SCREEN_WIDTH, SCREEN_HEIGHT, flags));
     SDL_Renderer *renderer = scp(SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
@@ -108,23 +108,43 @@ int main(void) {
 
 void render(SDL_Renderer *renderer, uistate_t *uistate) {
     imgui_begin();
+    Rect screen = {.x = 0, .y = 0, .w = SCREEN_WIDTH, .h = SCREEN_HEIGHT};
+    draw_rect(screen, 0xffffff);
+    layout_begin(HORIZONTAL, screen, 4, 0);
+    label(layout_slot(), "Hello", 0xff0000);
+    label(layout_slot(), "Hello", 0xff0000);
+    label(layout_slot(), "Hello", 0xff0000);
+    label(layout_slot(), "Hello", 0xff0000);
+    layout_end();
+    imgui_end();
+}
+
+void render2(SDL_Renderer *renderer, uistate_t *uistate) {
+    imgui_begin();
 
     Rect screen = {.x = 0, .y = 0, .w = SCREEN_WIDTH, .h = SCREEN_HEIGHT};
-    draw_rect(&screen, 0x000000);
+    draw_rect(screen, 0x000000);
 
-    Rect ceilbox = {.x = 0, .y = 0, .w = 60, .h = 60};
     int board_size = 9;
     int sqrt_size = sq_number_sqrt(board_size);
     int border = 1;
     int large_border = 3;
+
+    Vec2i grid_pos = {.x = 4, .y = 4};
+    int ceil_size = SCREEN_HEIGHT - grid_pos.y - board_size * (border + large_border / sqrt_size);
+    ceil_size /= board_size;
+    Rect ceilbox = {.x = grid_pos.x, .y = grid_pos.y, .w = ceil_size, .h = ceil_size};
     for (int i = 0; i < board_size; i++) {
         for (int j = 0; j < board_size; j++) {
 
-            ceilbox.x = i * ceilbox.w + i * border + i / sqrt_size * large_border;
-            ceilbox.y = j * ceilbox.h + j * border + j / sqrt_size * large_border;
-            button(&ceilbox, "10", i * board_size + j + 1);
+            ceilbox.x = grid_pos.x + i * ceilbox.w + i * border + i / sqrt_size * large_border;
+            ceilbox.y = grid_pos.y + j * ceilbox.h + j * border + j / sqrt_size * large_border;
+            button(ceilbox, "10", i * board_size + j + 1);
         }
     }
+
+    // H - grid_pos - boardsize * (border + large_border / sqrt_size)
+    // V - boardsize * (c.h + border + large_border / sqrt_size)
 
     imgui_end();
 }
