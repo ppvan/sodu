@@ -109,12 +109,18 @@ int main(void) {
 void render(SDL_Renderer *renderer, uistate_t *uistate) {
     imgui_begin();
     Rect screen = {.x = 0, .y = 0, .w = SCREEN_WIDTH, .h = SCREEN_HEIGHT};
-    draw_rect(screen, 0xffffff);
-    layout_begin(HORIZONTAL, screen, 4, 0);
-    label(layout_slot(), "Hello", 0xff0000);
-    label(layout_slot(), "Hello", 0xff0000);
-    label(layout_slot(), "Hello", 0xff0000);
-    label(layout_slot(), "Hello", 0xff0000);
+    draw_rect(screen, 0);
+
+    Rect bounds = {4, 4, SCREEN_HEIGHT - 8, SCREEN_HEIGHT - 8};
+    layout_begin(HORIZONTAL, bounds, 1, 0);
+    sodoku_board(NULL, layout_slot());
+    layout_end();
+
+    Rect controls = {bounds.x + bounds.w + 2, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
+    layout_begin(VERTICAL, controls, 3, 3);
+    button(layout_slot(), "Controls", GEN_ID);
+    button(layout_slot(), "Generate", GEN_ID);
+    button(layout_slot(), "Solve", GEN_ID);
     layout_end();
     imgui_end();
 }

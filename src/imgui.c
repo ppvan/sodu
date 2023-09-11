@@ -53,6 +53,33 @@ bool point_in_rect(Vec2i pos, Rect rect) {
     return rect.x <= pos.x && pos.x <= rect.x + rect.w && rect.y <= pos.y && pos.y <= rect.y + rect.h;
 }
 
+void sodoku_board(sodoku_t *sodoku, Rect bounds) {
+    layout_begin(VERTICAL, bounds, 3, 3);
+
+    int size = 9;
+    int sr = 3;
+    for (int i = 0; i < sr; i++) {
+        layout_begin(HORIZONTAL, layout_slot(), sr, 3);
+        for (int j = 0; j < sr; j++) {
+
+            layout_begin(VERTICAL, layout_slot(), sr, 1);
+            for (int s_i = 0; s_i < sr; s_i++) {
+                int id = GEN_ID + (i * sr + j + 1);
+                layout_begin(HORIZONTAL, layout_slot(), sr, 1);
+                for (int s_j = 0; s_j < sr; s_j++) {
+                    int subid = id * GEN_ID + (s_i * sr + s_j + 1);
+                    button(layout_slot(), "10", subid);
+                }
+                layout_end();
+            }
+            layout_end();
+        }
+        layout_end();
+    }
+
+    layout_end();
+}
+
 void label(Rect bounds, const char *text, uint32_t color) {
 
     Vec2i pos = {

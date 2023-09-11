@@ -80,7 +80,7 @@ int button(Rect bounds, const char *text, int id);
 void label(Rect bounds, const char *text, uint32_t color);
 
 void sodoku_ceil(const Rect *bounds, int *active);
-void sodoku_board(sodoku_t *sodoku, const Rect *bounds);
+void sodoku_board(sodoku_t *sodoku, Rect bounds);
 
 void imgui_init(SDL_Renderer *_renderer, uistate_t *_uistate, font_t *_font);
 void imgui_begin();
