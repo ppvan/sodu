@@ -14,11 +14,13 @@ typedef struct {
 
 typedef struct {
     int count;
+    int lineheight;
     ch_t chars[256];
     SDL_Texture *tex;
 } font_t;
 
 font_t *font_init(SDL_Renderer *renderer, const char *filename);
-void font_render(SDL_Renderer *renderer, font_t *font, Vec2i pos, char *str);
+void font_render(SDL_Renderer *renderer, font_t *font, Vec2i pos, const char *str);
+void render_text_center(SDL_Renderer *renderer, font_t *font, Vec2i pos, const char *str);
 
 #endif

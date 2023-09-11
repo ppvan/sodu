@@ -34,8 +34,10 @@ font_t *font_init(SDL_Renderer *renderer, const char *filename) {
 
     int ch;
     int i = 0;
-    int skiplines = 3;
+    int skiplines = 1;
     int count = 0;
+    int lineheight = 0;
+    int page = 0;
 
     while ((ch = fgetc(fhandle)) != EOF) {
         if (i + 1 == BUF_SIZE) {
@@ -49,7 +51,15 @@ font_t *font_init(SDL_Renderer *renderer, const char *filename) {
                 skiplines--;
             } else {
                 int rc = 0;
-                if (count < 1) {
+                if (lineheight < 1) {
+                    rc = sscanf(line, "common lineHeight=%i", &lineheight);
+                    if (rc < 1) {
+                        fprintf(stderr, "Font parse error %s\n", line);
+                    }
+                    font->lineheight = lineheight;
+                } else if (page < 1) {
+                    page = 1; // skip line 2
+                } else if (count < 1) {
                     rc = sscanf(line, "chars count=%i", &count);
                     if (rc < 1) {
                         fprintf(stderr, "Font parse error %s\n", line);
@@ -94,7 +104,7 @@ font_t *font_init(SDL_Renderer *renderer, const char *filename) {
 
     return font;
 }
-void font_render(SDL_Renderer *renderer, font_t *font, Vec2i pos, char *str) {
+void font_render(SDL_Renderer *renderer, font_t *font, Vec2i pos, const char *str) {
 
     int cx = pos.x;
     int cy = pos.y;
@@ -104,7 +114,7 @@ void font_render(SDL_Renderer *renderer, font_t *font, Vec2i pos, char *str) {
     SDL_Rect dest = {0};
 
     int len = (int)strlen(str);
-    for (int i = 0; i < strlen(str); i++) {
+    for (int i = 0; i < len; i++) {
         ch = str[i];
 
         if (ch == ' ') {
@@ -131,4 +141,39 @@ void font_render(SDL_Renderer *renderer, font_t *font, Vec2i pos, char *str) {
 
         scc(SDL_RenderCopy(renderer, font->tex, &src, &dest));
     }
+}
+
+void render_text_center(SDL_Renderer *renderer, font_t *font, Vec2i pos, const char *str) {
+    int ch;
+    SDL_Rect src = {0};
+    SDL_Rect dest = {0};
+
+    int len = (int)strlen(str);
+    int width = 0;
+    int height = font->lineheight; // 1 line.
+    for (int i = 0; i < len; i++) {
+        ch = str[i];
+
+        if (ch == ' ') {
+            src.w += font->chars['j'].xadv;
+            width += src.w;
+            continue;
+        } else if (ch == '\t') {
+            src.w += font->chars['j'].xadv * 4;
+            width += src.w;
+            continue;
+        } else if (ch == '\n') {
+            assert(0 && "Unimplemented");
+        }
+
+        src.w = font->chars[ch].w;
+        src.h = font->chars[ch].h + font->chars[ch].yoff;
+
+        width += src.w;
+    }
+
+    pos.x = pos.x - width / 2;
+    pos.y = pos.y - height / 2;
+
+    font_render(renderer, font, pos, str);
 }
