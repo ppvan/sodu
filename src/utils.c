@@ -3,6 +3,7 @@
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 void scc(int code) {
     if (code < 0) {
@@ -45,3 +46,5 @@ void debug(const char *file, int line, const char *format, ...) {
     va_end(args);
 #endif
 }
+
+double math_rand() { return rand() * 1.0 / RAND_MAX; }

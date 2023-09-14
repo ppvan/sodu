@@ -5,6 +5,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// Desire clues to init the generator, got from:
+// https://www.semanticscholar.org/paper/Sudoku-Puzzles-Generating%3A-From-Easy-to-Evil-Li/bf2d098e473ea34319b2f2cac8a91abf298dd11d
+#define CLUES 11
+#define CLUE_L_BOUND 4
+
 typedef struct {
     double solve_time;
     int variables;

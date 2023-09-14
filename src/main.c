@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define SCREEN_WIDTH 1200
 #define SCREEN_HEIGHT 800
@@ -50,6 +51,7 @@ void format_time(char *str, double time);
 void pad_right(char *str, int pad);
 
 int main(void) {
+    srand(time(0));
     scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
     int imgFlag = IMG_INIT_PNG;
     if (!(IMG_Init(IMG_INIT_PNG) & imgFlag)) {
@@ -195,9 +197,7 @@ void app_generate(application *app) {
         app->sodoku = NULL;
     }
 
-    app->sodoku =
-        sodoku_load_str(9, "6 1 7 9 5 3 2 4 8 5 9 3 2 8 4 1 7 6 8 2 4 1 6 7 9 3 5 4 8 1 6 7 9 5 2 3 7 6 9 5 3 "
-                           "2 8 1 4 3 5 2 8 4 1 6 9 7 2 3 8 4 1 6 7 5 9 0 7 5 3 2 8 4 6 1 1 4 6 7 9 5 3 8 2");
+    app->sodoku = sodoku_generate(9);
 }
 
 void app_solve(application *app) {

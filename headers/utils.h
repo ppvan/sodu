@@ -9,6 +9,7 @@
 void scc(int code);
 void *scp(void *handler);
 void *icp(void *handler);
+double math_rand();
 
 #define DEBUG(format, args...) debug(__FILE__, __LINE__, (format), ##args)
 int sq_number_sqrt(int num);

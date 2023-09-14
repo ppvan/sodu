@@ -217,11 +217,12 @@ sodoku_t *sodoku_init(int size) {
     // init data
     s->data = malloc(size * size * sizeof(int));
     assert(s->data && "Can't malloc s->data");
-    memset(s->data, 0, size * sizeof(int));
+    memset(s->data, 0, size * size * sizeof(int));
     // init solver
     s->solver = kissat_init();
     kissat_set_option(s->solver, "quiet", 1);
     kissat_set_option(s->solver, "sat", 1);
+    kissat_set_option(s->solver, "seed", rand());
     // init stats
     s->stats = malloc(sizeof(statistics_t));
     assert(s->stats && "Can't malloc s->stats");
@@ -360,6 +361,61 @@ sodoku_t *sodoku_load_str(int size, const char *str) {
         }
     }
     free(buf);
+
+    return s;
+}
+
+static sodoku_t *generate_solution(int size) {
+    // try and error to find this values.
+    int max_retried = 100;
+    int clues = size * size / 8 + 1;
+    sodoku_t *s = NULL;
+    while (max_retried--) {
+        s = sodoku_init(size);
+        unique_row(s);
+        unique_col(s);
+        unique_ceil(s);
+        unique_box(s);
+
+        for (int i = 1; i <= clues; i++) {
+            int val = math_rand() * size * size * size;
+            int sign = math_rand() > 0.5 ? 1 : -1;
+            kissat_add(s->solver, sign * val);
+            kissat_add(s->solver, 0);
+        }
+
+        int ans = kissat_solve(s->solver);
+        if (ans == UNSATISFIABLE) {
+            sodoku_free(s);
+        } else {
+            break;
+        }
+    }
+    extract_proof(s);
+
+    return s;
+}
+
+static void dig_holes(sodoku_t *s) {
+    int size = s->size;
+    int remain_clues = size * size / 8 + size;
+    int cur_clues = size * size;
+
+    while (cur_clues >= remain_clues) {
+
+        int i = math_rand() * size;
+        int j = math_rand() * size;
+        if (SKU_AT(s, i, j) > 0) {
+            SKU_AT(s, i, j) = 0;
+            cur_clues--;
+        }
+    }
+}
+
+sodoku_t *sodoku_generate(int size) {
+
+    sodoku_t *s = generate_solution(size);
+    dig_holes(s);
 
     return s;
 }
