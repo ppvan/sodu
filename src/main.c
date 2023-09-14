@@ -1,3 +1,4 @@
+#include "core.h"
 #include "font.h"
 #include "imgui.h"
 #include "la.h"
@@ -18,11 +19,35 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 1200
+#define SCREEN_HEIGHT 800
 
-void render(SDL_Renderer *renderer, uistate_t *uistate);
+#define STAT_PADING 16
+typedef struct {
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    font_t *font;
+    uistate_t *uistate;
+    // string holder;
+    char *value;
+
+    // states
+    sodoku_t *sodoku;
+    char *sodoku_modes;
+    int current_mode;
+
+    char *solve_modes;
+    int current_solve_mode;
+    bool running;
+} application;
+void handle_event(application *app);
+void render(application *app);
+void app_generate(application *app);
+void app_solve(application *app);
+void format_time(char *str, double time);
+void pad_right(char *str, int pad);
 
 int main(void) {
     scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
@@ -38,65 +63,27 @@ int main(void) {
     SDL_Renderer *renderer = scp(SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
 
     font_t *font = font_init(renderer, "./assets/octin");
-    (void)font;
-
     uistate_t uistate = {0};
+    sodoku_t *sodoku = sodoku_init(9);
+    char *value = malloc(1024 * sizeof(char));
     imgui_init(renderer, &uistate, font);
 
-    bool quit = false;
-    while (!quit) {
-        SDL_Event event = {0};
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-            case SDL_QUIT:
-                quit = true;
-                break;
-
-            case SDL_MOUSEMOTION: {
-
-                uistate.mouse = (Vec2i){
-                    .x = event.motion.x,
-                    .y = event.motion.y,
-                };
-                break;
-            }
-
-            case SDL_MOUSEBUTTONDOWN: {
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    uistate.mousedown = 1;
-                }
-                break;
-            }
-
-            case SDL_MOUSEBUTTONUP: {
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    uistate.mousedown = 0;
-                }
-                break;
-            }
-
-            case SDL_KEYUP: {
-                switch (event.key.keysym.sym) {
-                case SDLK_ESCAPE:
-                    quit = true;
-                    break;
-                default:
-                    break;
-                }
-
-                break;
-            }
-            case SDL_KEYDOWN: {
-                break;
-            }
-
-            default:
-                break;
-            }
-            // decide what to do with this event.
-        }
-
-        render(renderer, &uistate);
+    application app = {
+        .window = window,
+        .renderer = renderer,
+        .font = font,
+        .uistate = &uistate,
+        .value = value,
+        .sodoku = sodoku,
+        .sodoku_modes = "9x9;16x16;25x25",
+        .current_mode = 0,
+        .solve_modes = "BINOMIAL;PRODUCT",
+        .current_solve_mode = 0,
+        .running = true,
+    };
+    while (app.running) {
+        handle_event(&app);
+        render(&app);
     }
 
     SDL_DestroyRenderer(renderer);
@@ -106,51 +93,130 @@ int main(void) {
     return 0;
 }
 
-void render(SDL_Renderer *renderer, uistate_t *uistate) {
-    imgui_begin();
-    Rect screen = {.x = 0, .y = 0, .w = SCREEN_WIDTH, .h = SCREEN_HEIGHT};
-    draw_rect(screen, 0);
+void handle_event(application *app) {
+    SDL_Event event = {0};
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+        case SDL_QUIT:
+            app->running = false;
+            break;
 
+        case SDL_MOUSEMOTION: {
+
+            app->uistate->mouse = (Vec2i){
+                .x = event.motion.x,
+                .y = event.motion.y,
+            };
+            break;
+        }
+
+        case SDL_MOUSEBUTTONDOWN: {
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                app->uistate->mousedown = 1;
+            }
+            break;
+        }
+
+        case SDL_MOUSEBUTTONUP: {
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                app->uistate->mousedown = 0;
+            }
+            break;
+        }
+
+        case SDL_KEYUP: {
+            switch (event.key.keysym.sym) {
+            case SDLK_ESCAPE:
+                app->running = false;
+                break;
+            default:
+                break;
+            }
+
+            break;
+        }
+        case SDL_KEYDOWN: {
+            break;
+        }
+
+        default:
+            break;
+        }
+        // decide what to do with this event.
+    }
+}
+
+void render(application *app) {
+
+    imgui_begin();
     Rect bounds = {4, 4, SCREEN_HEIGHT - 8, SCREEN_HEIGHT - 8};
     layout_begin(HORIZONTAL, bounds, 1, 0);
-    sodoku_board(NULL, layout_slot());
+    sodoku_board(app->sodoku, layout_slot());
     layout_end();
 
     Rect controls = {bounds.x + bounds.w + 2, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
-    layout_begin(VERTICAL, controls, 3, 3);
-    button(layout_slot(), "Controls", GEN_ID);
-    button(layout_slot(), "Generate", GEN_ID);
-    button(layout_slot(), "Solve", GEN_ID);
+    layout_begin(VERTICAL, controls, 10, 3);
+
+    sodoku_type_combobox(layout_slot(), app->sodoku_modes, &app->current_mode, GEN_ID);
+    solve_stragey(layout_slot(), app->solve_modes, &app->current_solve_mode, GEN_ID);
+
+    memset(app->value, 0, 1024);
+    format_time(app->value, app->sodoku->stats->solve_time);
+    bglabel(layout_slot(), app->value, 0xDBB8D7);
+
+    memset(app->value, 0, 1024);
+    sprintf(app->value, "Clause: %d", app->sodoku->stats->clauses);
+    bglabel(layout_slot(), app->value, 0xDBB8D7);
+
+    memset(app->value, 0, 1024);
+    sprintf(app->value, "Vars: %d", app->sodoku->stats->variables);
+    bglabel(layout_slot(), app->value, 0xDBB8D7);
+
+    // button(layout_slot(), "Controls", GEN_ID);
+    // button(layout_slot(), "Controls", GEN_ID);
+
+    bglabel(layout_slot(), "", 0xDBB8D7);
+    bglabel(layout_slot(), "", 0xDBB8D7);
+
+    button(layout_slot(), "Export", GEN_ID);
+    if (button(layout_slot(), "Generate", GEN_ID)) {
+        app_generate(app);
+    }
+    if (button(layout_slot(), "Solve", GEN_ID)) {
+        app_solve(app);
+    }
     layout_end();
     imgui_end();
 }
 
-void render2(SDL_Renderer *renderer, uistate_t *uistate) {
-    imgui_begin();
-
-    Rect screen = {.x = 0, .y = 0, .w = SCREEN_WIDTH, .h = SCREEN_HEIGHT};
-    draw_rect(screen, 0x000000);
-
-    int board_size = 9;
-    int sqrt_size = sq_number_sqrt(board_size);
-    int border = 1;
-    int large_border = 3;
-
-    Vec2i grid_pos = {.x = 4, .y = 4};
-    int ceil_size = SCREEN_HEIGHT - grid_pos.y - board_size * (border + large_border / sqrt_size);
-    ceil_size /= board_size;
-    Rect ceilbox = {.x = grid_pos.x, .y = grid_pos.y, .w = ceil_size, .h = ceil_size};
-    for (int i = 0; i < board_size; i++) {
-        for (int j = 0; j < board_size; j++) {
-
-            ceilbox.x = grid_pos.x + i * ceilbox.w + i * border + i / sqrt_size * large_border;
-            ceilbox.y = grid_pos.y + j * ceilbox.h + j * border + j / sqrt_size * large_border;
-            button(ceilbox, "10", i * board_size + j + 1);
-        }
+void app_generate(application *app) {
+    if (app->sodoku != NULL) {
+        sodoku_free(app->sodoku);
+        app->sodoku = NULL;
     }
 
-    // H - grid_pos - boardsize * (border + large_border / sqrt_size)
-    // V - boardsize * (c.h + border + large_border / sqrt_size)
+    app->sodoku =
+        sodoku_load_str(9, "6 1 7 9 5 3 2 4 8 5 9 3 2 8 4 1 7 6 8 2 4 1 6 7 9 3 5 4 8 1 6 7 9 5 2 3 7 6 9 5 3 "
+                           "2 8 1 4 3 5 2 8 4 1 6 9 7 2 3 8 4 1 6 7 5 9 0 7 5 3 2 8 4 6 1 1 4 6 7 9 5 3 8 2");
+}
 
-    imgui_end();
+void app_solve(application *app) {
+    sodoku_solve(app->sodoku, BINOMIAL);
+    ;
+    ;
+}
+
+void format_time(char *str, double time) {
+    sprintf(str, "Time: %.2f ms", time * 1000);
+    ;
+    ;
+}
+
+void pad_right(char *str, int pad) {
+    int len = strlen(str);
+    while (len < pad) {
+        str[len] = ' ';
+        len++;
+    }
+    str[len] = '\0';
 }

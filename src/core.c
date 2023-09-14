@@ -346,3 +346,20 @@ void sodoku_print(sodoku_t *s, const char *name) {
     }
     printf("}\n");
 }
+
+sodoku_t *sodoku_load_str(int size, const char *str) {
+    sodoku_t *s = sodoku_init(size);
+    char *token = NULL;
+    char *buf = strdup(str);
+
+    token = strtok(buf, " ");
+    for (int r = 0; r < size; r++) {
+        for (int c = 0; c < size; c++) {
+            SKU_AT(s, r, c) = atoi(token);
+            token = strtok(NULL, " ");
+        }
+    }
+    free(buf);
+
+    return s;
+}

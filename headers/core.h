@@ -38,6 +38,7 @@ void sodoku_free(sodoku_t *s);
     0 = blank cell.
 */
 sodoku_t *sodoku_load(const char *filename);
+sodoku_t *sodoku_load_str(int size, const char *str);
 sodoku_t *sodoku_generate(int size);
 
 bool sodoku_solve(sodoku_t *s, strategy_t strategy);

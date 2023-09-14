@@ -74,11 +74,14 @@ void layout_stack_push(layout_stack_t *stack, orient_t orient, Rect rect, int co
         (da)->items[(da)->count++] = (item);                                                                           \
     } while (0)
 
-void draw_rect(Rect rect, uint32_t color);
+void rect(Rect rect, uint32_t color);
 
 int button(Rect bounds, const char *text, int id);
 void label(Rect bounds, const char *text, uint32_t color);
-
+void bglabel(Rect bounds, const char *text, uint32_t color);
+void combobox(Rect bounds, char *text_list, int *active, int id);
+void sodoku_type_combobox(Rect bounds, char *text_list, int *active, int id);
+void solve_stragey(Rect bounds, char *text_list, int *active, int id);
 void sodoku_ceil(const Rect *bounds, int *active);
 void sodoku_board(sodoku_t *sodoku, Rect bounds);
 
