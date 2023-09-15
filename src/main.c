@@ -1,4 +1,5 @@
 #include "core.h"
+#include "datatypes.h"
 #include "font.h"
 #include "imgui.h"
 #include "la.h"
@@ -33,22 +34,21 @@ typedef struct {
     uistate_t *uistate;
     // string holder;
     char *value;
+    // appdata
+    appdata data;
 
     // states
     sodoku_t *sodoku;
-    char *sodoku_modes;
-    int current_mode;
-
-    char *solve_modes;
-    int current_solve_mode;
+    options_t mode;
+    options_t board_mode;
+    options_t algrithm_mode;
     bool running;
 } application;
+void update(application *app);
 void handle_event(application *app);
 void render(application *app);
 void app_generate(application *app);
 void app_solve(application *app);
-void format_time(char *str, double time);
-void pad_right(char *str, int pad);
 
 int main(void) {
     srand(time(0));
@@ -66,6 +66,12 @@ int main(void) {
 
     font_t *font = font_init(renderer, "./assets/octin");
     uistate_t uistate = {0};
+
+    options_t mode = options_new(2, "Demo", "Test");
+    options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
+    options_t algorithm_mode = options_new(2, "BINOMINAL", "PRODUCT");
+    appdata data = appdata_alloc();
+
     sodoku_t *sodoku = sodoku_init(9);
     char *value = malloc(1024 * sizeof(char));
     imgui_init(renderer, &uistate, font);
@@ -76,14 +82,15 @@ int main(void) {
         .font = font,
         .uistate = &uistate,
         .value = value,
+        .data = data,
         .sodoku = sodoku,
-        .sodoku_modes = "9x9;16x16;25x25",
-        .current_mode = 0,
-        .solve_modes = "BINOMIAL;PRODUCT",
-        .current_solve_mode = 0,
+        .mode = mode,
+        .board_mode = board_mode,
+        .algrithm_mode = algorithm_mode,
         .running = true,
     };
     while (app.running) {
+        update(&app);
         handle_event(&app);
         render(&app);
     }
@@ -159,20 +166,11 @@ void render(application *app) {
     Rect controls = {bounds.x + bounds.w + 2, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
     layout_begin(VERTICAL, controls, 10, 3);
 
-    sodoku_type_combobox(layout_slot(), app->sodoku_modes, &app->current_mode, GEN_ID);
-    solve_stragey(layout_slot(), app->solve_modes, &app->current_solve_mode, GEN_ID);
-
-    memset(app->value, 0, 1024);
-    format_time(app->value, app->sodoku->stats->solve_time);
-    bglabel(layout_slot(), app->value, 0xDBB8D7);
-
-    memset(app->value, 0, 1024);
-    sprintf(app->value, "Clause: %d", app->sodoku->stats->clauses);
-    bglabel(layout_slot(), app->value, 0xDBB8D7);
-
-    memset(app->value, 0, 1024);
-    sprintf(app->value, "Vars: %d", app->sodoku->stats->variables);
-    bglabel(layout_slot(), app->value, 0xDBB8D7);
+    combox(layout_slot(), "Board", &(app->board_mode), GEN_ID);
+    combox(layout_slot(), "ALG", &(app->algrithm_mode), GEN_ID);
+    bglabel(layout_slot(), app->data.solve_time, 0xDBB8D7);
+    bglabel(layout_slot(), app->data.clauses, 0xDBB8D7);
+    bglabel(layout_slot(), app->data.variables, 0xDBB8D7);
 
     // button(layout_slot(), "Controls", GEN_ID);
     // button(layout_slot(), "Controls", GEN_ID);
@@ -206,17 +204,7 @@ void app_solve(application *app) {
     ;
 }
 
-void format_time(char *str, double time) {
-    sprintf(str, "Time: %.2f ms", time * 1000);
+void update(application *app) {
+    update_app_data(&app->data, app->sodoku);
     ;
-    ;
-}
-
-void pad_right(char *str, int pad) {
-    int len = strlen(str);
-    while (len < pad) {
-        str[len] = ' ';
-        len++;
-    }
-    str[len] = '\0';
 }

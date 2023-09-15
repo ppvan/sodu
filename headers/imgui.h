@@ -2,6 +2,7 @@
 #define _IMGUI_H_
 
 #include "core.h"
+#include "datatypes.h"
 #include "font.h"
 #include "la.h"
 #include <SDL.h>
@@ -84,6 +85,9 @@ void sodoku_type_combobox(Rect bounds, char *text_list, int *active, int id);
 void solve_stragey(Rect bounds, char *text_list, int *active, int id);
 void sodoku_ceil(const Rect *bounds, int *active);
 void sodoku_board(sodoku_t *sodoku, Rect bounds);
+
+void combobox(Rect bounds, char *text_list, int *active, int id);
+void combox(Rect bounds, char *text, options_t *options, int id);
 
 void imgui_init(SDL_Renderer *_renderer, uistate_t *_uistate, font_t *_font);
 void imgui_begin();

@@ -1,5 +1,6 @@
 #include "imgui.h"
 #include "core.h"
+#include "datatypes.h"
 #include "font.h"
 #include "la.h"
 #include "utils.h"
@@ -342,6 +343,58 @@ void solve_stragey(Rect bounds, char *text_list, int *active, int id) {
     }
     free(tmp);
     free(list);
+}
+
+void combox(Rect bounds, char *text, options_t *options, int id) {
+
+    Rect pre = {
+        .x = bounds.x,
+        .y = bounds.y,
+        .w = bounds.w / 2 - 2,
+        .h = bounds.h,
+    };
+
+    Rect after = {
+        .x = bounds.x + bounds.w / 2 + 2,
+        .y = bounds.y,
+        .w = bounds.w / 2,
+        .h = bounds.h,
+    };
+
+    if (point_in_rect(uistate->mouse, bounds)) {
+        uistate->hotitem = id;
+        if (uistate->activeitem == 0 && uistate->mousedown == 1) {
+            uistate->activeitem = id;
+        }
+    };
+
+    if (uistate->hotitem == id) {
+        if (uistate->activeitem == id) {
+            // Button is both 'hot' and 'active'
+            rect(pre, 0xDBB8D7);
+            rect(after, 0xDBB8D7);
+        } else {
+            rect(pre, 0x8D7471);
+            rect(after, 0x8D7471);
+        }
+    } else {
+        // button normal
+        rect(pre, 0xDBB8D7);
+        rect(after, 0xDBB8D7);
+        // draw_rect(bounds, 0xff0000);
+    }
+    // render_text(font, bounds, text, CENTER);
+
+    label(pre, text, 0x000000);
+    label(after, option_current(*options), 0x000000);
+
+    if (uistate->hotitem == id && uistate->activeitem == id && uistate->mousedown == 0) {
+        options->current++;
+
+        if (options->current >= options->size) {
+            options->current = 0;
+        }
+    }
 }
 
 int button(Rect bounds, const char *text, int id) {

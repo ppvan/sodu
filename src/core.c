@@ -404,8 +404,11 @@ static sodoku_t *generate_solution(int size) {
     extract_proof(s);
     // reset solver for solving step
     kissat_release(s->solver);
-    s->solver = solver_new();
+    free(s->stats);
 
+    s->solver = solver_new();
+    s->stats = malloc(sizeof(statistics_t));
+    memset(s->stats, 0, sizeof(*s->stats));
     return s;
 }
 
