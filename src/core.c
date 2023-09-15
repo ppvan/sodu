@@ -39,6 +39,16 @@ static inline void index_1d_to_3d(int size, int idx, int *i, int *j, int *v) {
     *i = idx + 1;
 }
 
+static kissat *solver_new() {
+    kissat *solver = kissat_init();
+    solver = kissat_init();
+    kissat_set_option(solver, "quiet", 1);
+    kissat_set_option(solver, "sat", 1);
+    kissat_set_option(solver, "seed", rand());
+
+    return solver;
+}
+
 /** Add a wrapper around kissat_add to statisics */
 void sodoku_add(sodoku_t *s, int lit) {
     kissat_add(s->solver, lit);
@@ -392,6 +402,9 @@ static sodoku_t *generate_solution(int size) {
         }
     }
     extract_proof(s);
+    // reset solver for solving step
+    kissat_release(s->solver);
+    s->solver = solver_new();
 
     return s;
 }

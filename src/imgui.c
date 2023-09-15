@@ -368,7 +368,8 @@ int button(Rect bounds, const char *text, int id) {
         rect(bounds, 0xDBB8D7);
         // draw_rect(bounds, 0xff0000);
     }
-    render_text(font, bounds, text, CENTER);
+    // render_text(font, bounds, text, CENTER);
+    label(bounds, text, 0x000000);
 
     // click
     if (uistate->hotitem == id && uistate->activeitem == id && uistate->mousedown == 0) {
