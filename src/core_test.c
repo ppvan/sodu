@@ -36,10 +36,10 @@ void run_test(const char *filename) {
         bool sat = sodoku_solve(s, BINOMIAL);
 
         // SKU_PRINT(s);
-        if (sat && sodoku_valid(s)) {
-            test_time += s->stats->solve_time;
-            DEBUG("PASS: %.4fs\n", s->stats->solve_time);
-            DEBUG("%d vars, %d clauses\n", s->stats->variables, s->stats->clauses);
+        if (sat && sodoku_is_solution(s)) {
+            test_time += s->solver->time;
+            DEBUG("PASS: %.4fs\n", s->solver->time);
+            DEBUG("%d vars, %d clauses\n", s->solver->vars, s->solver->vars);
         } else {
             DEBUG("tests-%02d\tFAILED\n", i);
             DEBUG("SAT: %s\n", sat ? "true" : "false");

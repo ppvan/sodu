@@ -42,7 +42,7 @@ appdata appdata_alloc() {
     return data;
 }
 void update_app_data(appdata *appdata, sodoku_t *s) {
-    sprintf(appdata->solve_time, "Time: %3.2f", s->stats->solve_time);
-    sprintf(appdata->variables, "Vars: %d", s->stats->variables);
-    sprintf(appdata->clauses, "Clauses: %d", s->stats->clauses);
+    sprintf(appdata->solve_time, "Time: %3.2f", s->solver->time);
+    sprintf(appdata->variables, "Vars: %zu", s->solver->vars);
+    sprintf(appdata->clauses, "Clauses: %zu", s->solver->clauses);
 }

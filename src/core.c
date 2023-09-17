@@ -1,4 +1,5 @@
 #include "core.h"
+#include "solver.h"
 #include "utils.h"
 #include <assert.h>
 #include <errno.h>
@@ -9,8 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-enum { UNSATISFIABLE = 20, SATISFIABLE = 10 };
+#include <sys/types.h>
 
 // Map (n,n,n) to 1..n^3
 // row,col,val should be in [1,n]
@@ -39,43 +39,22 @@ static inline void index_1d_to_3d(int size, int idx, int *i, int *j, int *v) {
     *i = idx + 1;
 }
 
-static kissat *solver_new() {
-    kissat *solver = kissat_init();
-    solver = kissat_init();
-    kissat_set_option(solver, "quiet", 1);
-    kissat_set_option(solver, "sat", 1);
-    kissat_set_option(solver, "seed", rand());
-
-    return solver;
-}
-
-/** Add a wrapper around kissat_add to statisics */
-void sodoku_add(sodoku_t *s, int lit) {
-    kissat_add(s->solver, lit);
-    if (lit == 0) {
-        s->stats->clauses += 1;
-    } else {
-        int tmp = s->stats->variables;
-        s->stats->variables = abs(lit) > tmp ? abs(lit) : tmp;
-    }
-}
-
 static inline void unique_ceil(sodoku_t *s) {
     int size = s->size;
     for (int i = 1; i <= size; i++) {
         for (int j = 1; j <= size; j++) {
             for (int v = 1; v <= size; v++) {
                 int idx = index_3d_to_1d(size, i, j, v);
-                sodoku_add(s, idx);
+                solver_add(s->solver, idx);
             }
-            sodoku_add(s, 0);
+            solver_add(s->solver, 0);
             for (int v = 1; v <= size; v++) {
                 for (int other_v = v + 1; other_v <= size; other_v++) {
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, i, j, other_v);
-                    sodoku_add(s, -idx1);
-                    sodoku_add(s, -idx2);
-                    sodoku_add(s, 0);
+                    solver_add(s->solver, -idx1);
+                    solver_add(s->solver, -idx2);
+                    solver_add(s->solver, 0);
                 }
             }
         }
@@ -88,17 +67,17 @@ static inline void unique_row(sodoku_t *s) {
         for (int v = 1; v <= size; v++) {
             for (int j = 1; j <= size; j++) {
                 int idx = index_3d_to_1d(size, i, j, v);
-                sodoku_add(s, idx);
+                solver_add(s->solver, idx);
             }
-            sodoku_add(s, 0);
+            solver_add(s->solver, 0);
             for (int j = 1; j <= size; j++) {
                 for (int other_j = j + 1; other_j <= size; other_j++) {
 
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, i, other_j, v);
-                    sodoku_add(s, -idx1);
-                    sodoku_add(s, -idx2);
-                    sodoku_add(s, 0);
+                    solver_add(s->solver, -idx1);
+                    solver_add(s->solver, -idx2);
+                    solver_add(s->solver, 0);
                 }
             }
         }
@@ -110,17 +89,17 @@ static inline void unique_col(sodoku_t *s) {
         for (int v = 1; v <= size; v++) {
             for (int i = 1; i <= size; i++) {
                 int idx = index_3d_to_1d(size, i, j, v);
-                sodoku_add(s, idx);
+                solver_add(s->solver, idx);
             }
-            sodoku_add(s, 0);
+            solver_add(s->solver, 0);
             for (int i = 1; i <= size; i++) {
                 for (int other_i = i + 1; other_i <= size; other_i++) {
                     int idx1 = index_3d_to_1d(size, i, j, v);
                     int idx2 = index_3d_to_1d(size, other_i, j, v);
-                    sodoku_add(s, -idx1);
-                    sodoku_add(s, -idx2);
+                    solver_add(s->solver, -idx1);
+                    solver_add(s->solver, -idx2);
 
-                    sodoku_add(s, 0);
+                    solver_add(s->solver, 0);
                 }
             }
         }
@@ -136,10 +115,10 @@ static inline void unique_box(sodoku_t *s) {
                 for (int i = sub_i; i < sub_i + sr; i++) {
                     for (int j = sub_j; j < sub_j + sr; j++) {
                         int idx = index_3d_to_1d(size, i, j, v);
-                        sodoku_add(s, idx);
+                        solver_add(s->solver, idx);
                     }
                 }
-                sodoku_add(s, 0);
+                solver_add(s->solver, 0);
             }
 
             // at most 1 val in sub-box
@@ -158,9 +137,9 @@ static inline void unique_box(sodoku_t *s) {
 
                                 int idx1 = index_3d_to_1d(size, i, j, v);
                                 int idx2 = index_3d_to_1d(size, other_i, other_j, v);
-                                sodoku_add(s, -idx1);
-                                sodoku_add(s, -idx2);
-                                sodoku_add(s, 0);
+                                solver_add(s->solver, -idx1);
+                                solver_add(s->solver, -idx2);
+                                solver_add(s->solver, 0);
 
                                 // printf("%d => !%d\n", idx1, idx2);
                             }
@@ -176,11 +155,9 @@ static inline void extract_proof(sodoku_t *s) {
     int i, j, v;
     int size = s->size;
     for (int idx = 1; idx <= size * size * size; idx++) {
-        if (kissat_value(s->solver, idx) > 0) {
+        if (solver_value(s->solver, idx)) {
             index_1d_to_3d(size, idx, &i, &j, &v);
             SKU_AT(s, i - 1, j - 1) = v;
-        } else {
-            assert(idx && "That variable shouldn't be true.");
         }
     }
 }
@@ -193,8 +170,8 @@ static inline void apply_defined_values(sodoku_t *s) {
                 continue;
             // cnf require indx from 1 -> i + 1, j + 1
             int idx = index_3d_to_1d(size, i + 1, j + 1, SKU_AT(s, i, j));
-            sodoku_add(s, idx);
-            sodoku_add(s, 0);
+            solver_add(s->solver, idx);
+            solver_add(s->solver, 0);
         }
     }
 }
@@ -207,12 +184,9 @@ bool sodoku_solve_naive(sodoku_t *s) {
     unique_ceil(s);
     unique_box(s);
 
-    int ans = kissat_solve(s->solver);
-    if (ans == UNSATISFIABLE) {
+    if (!solver_solve(s->solver)) {
         return false;
     }
-
-    s->stats->solve_time = kissat_time(s->solver);
     extract_proof(s);
 
     return true;
@@ -229,21 +203,13 @@ sodoku_t *sodoku_init(int size) {
     assert(s->data && "Can't malloc s->data");
     memset(s->data, 0, size * size * sizeof(int));
     // init solver
-    s->solver = kissat_init();
-    kissat_set_option(s->solver, "quiet", 1);
-    kissat_set_option(s->solver, "sat", 1);
-    kissat_set_option(s->solver, "seed", rand());
-    // init stats
-    s->stats = malloc(sizeof(statistics_t));
-    assert(s->stats && "Can't malloc s->stats");
-    memset(s->stats, 0, sizeof(statistics_t));
+    s->solver = solver_new();
     return s;
 }
 
 void sodoku_free(sodoku_t *s) {
     free(s->data);
-    free(s->stats);
-    kissat_release(s->solver);
+    solver_free(s->solver);
     free(s);
 }
 
@@ -269,10 +235,12 @@ sodoku_t *sodoku_load(const char *filename) {
 }
 
 bool sodoku_solve(sodoku_t *s, strategy_t strategy) {
+    bool result = false;
     switch (strategy) {
 
     case BINOMIAL: {
-        return sodoku_solve_naive(s);
+        result = sodoku_solve_naive(s);
+        break;
     }
 
     case PRODUCT: {
@@ -281,42 +249,52 @@ bool sodoku_solve(sodoku_t *s, strategy_t strategy) {
     }
     }
 
-    return true;
+    return result;
 }
-
-/** Check if current state is a valid solution. */
-bool sodoku_valid(sodoku_t *s) {
+bool sodoku_is_solution(sodoku_t *s) {
     int size = s->size;
     int sr = sq_number_sqrt(size);
     bool valid = true;
-    bool *flags = malloc(size * sizeof(bool));
+    bool *flags = malloc((size + 1) * sizeof(bool));
     assert(flags && "Can't malloc flags");
 
     // rows
     for (int i = 0; i < size; i++) {
-        memset(flags, 0, size * sizeof(bool));
+        memset(flags, 0, (size + 1) * sizeof(bool));
 
         for (int j = 0; j < size; j++) {
-            assert(SKU_AT(s, i, j) >= 1 && SKU_AT(s, i, j) <= size);
-            if (flags[SKU_AT(s, i, j) - 1]) {
+            assert(SKU_AT(s, i, j) >= 0 && SKU_AT(s, i, j) <= size);
+
+            if (SKU_AT(s, i, j) == 0) {
                 valid = false;
                 goto end;
             }
-            flags[SKU_AT(s, i, j) - 1] = true;
+
+            if (flags[SKU_AT(s, i, j)]) { // duplicate
+                valid = false;
+                goto end;
+            }
+            flags[SKU_AT(s, i, j)] = true;
         }
     }
 
     // columns
     for (int i = 0; i < size; i++) {
-        memset(flags, 0, size * sizeof(bool));
+        memset(flags, 0, (size + 1) * sizeof(bool));
 
         for (int j = 0; j < size; j++) {
-            assert(SKU_AT(s, j, i) >= 1 && SKU_AT(s, j, i) <= size);
-            if (flags[SKU_AT(s, j, i) - 1]) {
+            assert(SKU_AT(s, j, i) >= 0 && SKU_AT(s, j, i) <= size);
+
+            if (SKU_AT(s, j, i) == 0) {
                 valid = false;
                 goto end;
             }
-            flags[SKU_AT(s, j, i) - 1] = true;
+
+            if (flags[SKU_AT(s, j, i)]) {
+                valid = false;
+                goto end;
+            }
+            flags[SKU_AT(s, j, i)] = true;
         }
     }
 
@@ -324,17 +302,23 @@ bool sodoku_valid(sodoku_t *s) {
     for (int sub_i = 0; sub_i < size; sub_i += sr) {
         for (int sub_j = 0; sub_j < size; sub_j += sr) {
 
-            memset(flags, 0, size * sizeof(bool));
+            memset(flags, 0, (size + 1) * sizeof(bool));
             // iterate in sub-box
             for (int i = sub_i; i < sub_i + sr; i++) {
                 for (int j = sub_j; j < sub_j + sr; j++) {
 
-                    assert(SKU_AT(s, i, j) >= 1 && SKU_AT(s, i, j) <= size);
-                    if (flags[SKU_AT(s, i, j) - 1]) {
+                    assert(SKU_AT(s, i, j) >= 0 && SKU_AT(s, i, j) <= size);
+
+                    if (SKU_AT(s, i, j) == 0) {
                         valid = false;
                         goto end;
                     }
-                    flags[SKU_AT(s, i, j) - 1] = true;
+
+                    if (flags[SKU_AT(s, i, j)]) {
+                        valid = false;
+                        goto end;
+                    }
+                    flags[SKU_AT(s, i, j)] = true;
                 }
             }
         }
@@ -390,12 +374,10 @@ static sodoku_t *generate_solution(int size) {
         for (int i = 1; i <= clues; i++) {
             int val = math_rand() * size * size * size;
             int sign = math_rand() > 0.5 ? 1 : -1;
-            kissat_add(s->solver, sign * val);
-            kissat_add(s->solver, 0);
+            solver_add(s->solver, sign * val);
+            solver_add(s->solver, 0);
         }
-
-        int ans = kissat_solve(s->solver);
-        if (ans == UNSATISFIABLE) {
+        if (!solver_solve(s->solver)) {
             sodoku_free(s);
         } else {
             break;
@@ -403,12 +385,7 @@ static sodoku_t *generate_solution(int size) {
     }
     extract_proof(s);
     // reset solver for solving step
-    kissat_release(s->solver);
-    free(s->stats);
-
-    s->solver = solver_new();
-    s->stats = malloc(sizeof(statistics_t));
-    memset(s->stats, 0, sizeof(*s->stats));
+    solver_reset(s->solver);
     return s;
 }
 

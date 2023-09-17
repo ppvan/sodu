@@ -2,6 +2,7 @@
 
 #define _CORE_H_
 #include "kissat.h"
+#include "solver.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -21,8 +22,7 @@ typedef struct {
     int size;
     int *data;
 
-    kissat *solver;
-    statistics_t *stats;
+    solver_t *solver;
 } sodoku_t;
 
 typedef enum {
@@ -50,7 +50,7 @@ sodoku_t *sodoku_generate(int size);
 bool sodoku_solve(sodoku_t *s, strategy_t strategy);
 
 /** Check if current state is a valid solution. */
-bool sodoku_valid(sodoku_t *s);
+bool sodoku_is_solution(sodoku_t *s);
 
 #define SKU_PRINT(s) sodoku_print(s, #s);
 void sodoku_print(sodoku_t *s, const char *name);

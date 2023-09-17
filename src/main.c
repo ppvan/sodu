@@ -3,6 +3,7 @@
 #include "font.h"
 #include "imgui.h"
 #include "la.h"
+#include "solver.h"
 #include "utils.h"
 
 #include <SDL.h>
@@ -17,6 +18,7 @@
 #include <SDL_rect.h>
 #include <SDL_render.h>
 #include <SDL_video.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,8 +52,17 @@ void render(application *app);
 void app_generate(application *app);
 void app_solve(application *app);
 
+enum board_mode { BOARD9x9 = 0, BOARD16x16, BOARD25x25 };
+enum algorithm_mode { AL_BINOMINAL = 0, AL_PRODUCT };
+
 int main(void) {
     srand(time(0));
+    options_t mode = options_new(2, "Demo", "Test");
+    options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
+    options_t algorithm_mode = options_new(2, "BINOMINAL", "PRODUCT");
+    appdata data = appdata_alloc();
+    sodoku_t *sodoku = sodoku_generate(9);
+
     scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
     int imgFlag = IMG_INIT_PNG;
     if (!(IMG_Init(IMG_INIT_PNG) & imgFlag)) {
@@ -66,14 +77,6 @@ int main(void) {
 
     font_t *font = font_init(renderer, "./assets/octin");
     uistate_t uistate = {0};
-
-    options_t mode = options_new(2, "Demo", "Test");
-    options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
-    options_t algorithm_mode = options_new(2, "BINOMINAL", "PRODUCT");
-    appdata data = appdata_alloc();
-
-    sodoku_t *sodoku = sodoku_init(9);
-    char *value = malloc(1024 * sizeof(char));
     imgui_init(renderer, &uistate, font);
 
     application app = {
@@ -81,7 +84,6 @@ int main(void) {
         .renderer = renderer,
         .font = font,
         .uistate = &uistate,
-        .value = value,
         .data = data,
         .sodoku = sodoku,
         .mode = mode,
@@ -89,6 +91,7 @@ int main(void) {
         .algrithm_mode = algorithm_mode,
         .running = true,
     };
+
     while (app.running) {
         update(&app);
         handle_event(&app);
@@ -166,7 +169,9 @@ void render(application *app) {
     Rect controls = {bounds.x + bounds.w + 2, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
     layout_begin(VERTICAL, controls, 10, 3);
 
-    combox(layout_slot(), "Board", &(app->board_mode), GEN_ID);
+    if (combox(layout_slot(), "Board", &(app->board_mode), GEN_ID)) {
+        app_generate(app);
+    }
     combox(layout_slot(), "ALG", &(app->algrithm_mode), GEN_ID);
     bglabel(layout_slot(), app->data.solve_time, 0xDBB8D7);
     bglabel(layout_slot(), app->data.clauses, 0xDBB8D7);
@@ -194,14 +199,36 @@ void app_generate(application *app) {
         sodoku_free(app->sodoku);
         app->sodoku = NULL;
     }
-
-    app->sodoku = sodoku_generate(9);
+    switch (app->board_mode.current) {
+    case BOARD9x9:
+        app->sodoku = sodoku_generate(9);
+        break;
+    case BOARD16x16:
+        app->sodoku = sodoku_generate(16);
+        break;
+    case BOARD25x25:
+        app->sodoku = sodoku_generate(25);
+    }
 }
 
 void app_solve(application *app) {
-    sodoku_solve(app->sodoku, BINOMIAL);
-    ;
-    ;
+
+    if (sodoku_is_solution(app->sodoku)) {
+        return;
+    } else {
+        switch (app->algrithm_mode.current) {
+        case AL_BINOMINAL: {
+            sodoku_solve(app->sodoku, BINOMIAL);
+            break;
+        case AL_PRODUCT:
+            break;
+
+        default:
+            assert(0 && "Unreachable");
+            break;
+        }
+        }
+    }
 }
 
 void update(application *app) {

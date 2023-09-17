@@ -345,7 +345,7 @@ void solve_stragey(Rect bounds, char *text_list, int *active, int id) {
     free(list);
 }
 
-void combox(Rect bounds, char *text, options_t *options, int id) {
+bool combox(Rect bounds, char *text, options_t *options, int id) {
 
     Rect pre = {
         .x = bounds.x,
@@ -394,7 +394,11 @@ void combox(Rect bounds, char *text, options_t *options, int id) {
         if (options->current >= options->size) {
             options->current = 0;
         }
+
+        return true;
     }
+
+    return false;
 }
 
 int button(Rect bounds, const char *text, int id) {
