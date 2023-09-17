@@ -139,7 +139,6 @@ Vec2i text_size(font_t *font, const char *str) {
 void render_text_center(font_t *font, Vec2i pos, const char *str) {
     int ch;
     SDL_Rect src = {0};
-    SDL_Rect dest = {0};
 
     int len = (int)strlen(str);
     int width = 0;

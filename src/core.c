@@ -361,8 +361,7 @@ sodoku_t *sodoku_load_str(int size, const char *str) {
 
 static sodoku_t *generate_solution(int size) {
     // try and error to find this values.
-    int max_retried = 100;
-    int clues = size * size / 8 + 1;
+    int max_retried = 10;
     sodoku_t *s = NULL;
     while (max_retried--) {
         s = sodoku_init(size);
@@ -371,7 +370,7 @@ static sodoku_t *generate_solution(int size) {
         unique_ceil(s);
         unique_box(s);
 
-        for (int i = 1; i <= clues; i++) {
+        for (int i = 1; i <= CLUES; i++) {
             int val = math_rand() * size * size * size;
             int sign = math_rand() > 0.5 ? 1 : -1;
             solver_add(s->solver, sign * val);
@@ -380,12 +379,15 @@ static sodoku_t *generate_solution(int size) {
         if (!solver_solve(s->solver)) {
             sodoku_free(s);
         } else {
+            extract_proof(s);
+            // reset solver for solving step
+            solver_reset(s->solver);
             break;
         }
     }
-    extract_proof(s);
-    // reset solver for solving step
-    solver_reset(s->solver);
+
+    assert(max_retried >= 0 && "No solution found.");
+
     return s;
 }
 

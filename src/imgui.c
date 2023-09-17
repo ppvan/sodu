@@ -82,10 +82,10 @@ void sodoku_board(sodoku_t *sodoku, Rect bounds) {
 
             layout_begin(VERTICAL, layout_slot(), sr, sub_gap);
             for (int s_i = 0; s_i < sr; s_i++) {
-                int id = GEN_ID + (i * sr + j + 1);
+                // int id = GEN_ID + (i * sr + j + 1);
                 layout_begin(HORIZONTAL, layout_slot(), sr, sub_gap);
                 for (int s_j = 0; s_j < sr; s_j++) {
-                    int subid = id * GEN_ID + (s_i * sr + s_j + 1);
+                    // int subid = id * GEN_ID + (s_i * sr + s_j + 1);
                     // button(layout_slot(), "10", subid);
                     Rect c = layout_slot();
 
@@ -121,10 +121,6 @@ void label(Rect bounds, const char *text, uint32_t color) {
 }
 
 void bglabel(Rect bounds, const char *text, uint32_t color) {
-    Uint8 r, g, b;
-    r = (color >> 16) & 0xff;
-    g = (color >> 8) & 0xff;
-    b = color & 0xff;
     rect(bounds, color);
     render_text(font, bounds, text, CENTER);
 }
