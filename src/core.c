@@ -184,7 +184,7 @@ bool sodoku_solve(sodoku_t *s, strategy_t strategy) {
         break;
     }
 
-    case SEQ: {
+    case SEQUENTIAL: {
         result = sodoku_solve_internal(s, solver_amo_seq);
         break;
     }

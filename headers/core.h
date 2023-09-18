@@ -21,7 +21,7 @@ typedef struct {
 
 typedef enum {
     BINOMIAL,
-    SEQ,
+    SEQUENTIAL,
     PRODUCT,
 } strategy_t;
 
@@ -41,7 +41,6 @@ void sodoku_free(sodoku_t *s);
 sodoku_t *sodoku_load(const char *filename);
 sodoku_t *sodoku_load_str(int size, const char *str);
 sodoku_t *sodoku_generate(int size);
-int sodoku_auxnext(sodoku_t *s);
 
 bool sodoku_solve(sodoku_t *s, strategy_t strategy);
 

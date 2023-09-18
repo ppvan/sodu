@@ -29,8 +29,11 @@
 #define SCREEN_HEIGHT 800
 
 #define STAT_PADING 16
+#define TEXT_BUF_SIZE 128
 
 typedef struct {
+    sodoku_t *sodoku;
+
     char *solve_time;
     char *variables;
     char *clauses;
@@ -41,8 +44,6 @@ typedef struct {
     SDL_Renderer *renderer;
     font_t *font;
     uistate_t *uistate;
-    // string holder;
-    char *value;
     // appdata
     appdata data;
 
@@ -54,11 +55,11 @@ typedef struct {
     bool running;
 } application;
 
-appdata appdata_alloc() {
+appdata appdata_init() {
     appdata data = {0};
-    data.solve_time = malloc(BUF_SIZE * sizeof(char));
-    data.variables = malloc(BUF_SIZE * sizeof(char));
-    data.clauses = malloc(BUF_SIZE * sizeof(char));
+    data.solve_time = malloc(TEXT_BUF_SIZE * sizeof(char));
+    data.variables = malloc(TEXT_BUF_SIZE * sizeof(char));
+    data.clauses = malloc(TEXT_BUF_SIZE * sizeof(char));
 
     assert(data.solve_time && "Can't malloc data->solve_time");
     assert(data.variables && "Can't malloc data->variables");
@@ -86,7 +87,7 @@ int main(void) {
     options_t mode = options_new(2, "Demo", "Test");
     options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
     options_t algorithm_mode = options_new(3, "BINOMINAL", "SEQUENTIAL", "PRODUCT");
-    appdata data = appdata_alloc();
+    appdata data = appdata_init();
     sodoku_t *sodoku = sodoku_generate(9);
 
     scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
@@ -241,7 +242,7 @@ void app_solve(application *app) {
             sodoku_solve(app->sodoku, BINOMIAL);
             break;
         case AL_SEQUENTIAL:
-            sodoku_solve(app->sodoku, SEQ);
+            sodoku_solve(app->sodoku, SEQUENTIAL);
             break;
         case AL_PRODUCT:
             sodoku_solve(app->sodoku, PRODUCT);
