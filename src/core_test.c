@@ -33,7 +33,7 @@ void run_test(const char *filename) {
         }
         // SKU_PRINT(s);
 
-        bool sat = sodoku_solve(s, SEQ);
+        bool sat = sodoku_solve(s, PRODUCT);
 
         // SKU_PRINT(s);
         if (sat && sodoku_is_solution(s)) {
@@ -53,7 +53,5 @@ void run_test(const char *filename) {
 
 int main(void) {
     run_test("./data/test-9x9.txt");
-    ;
-    ;
     return 0;
 }

@@ -1,6 +1,7 @@
 #include "solver.h"
 #include "datatypes.h"
 #include "kissat.h"
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,4 +114,48 @@ void solver_amo_seq(solver_t *solver, vec_t *literals, counter_t *aux_start) {
 #undef X
     *aux_start = aux + n;
 }
-void solver_amo_product(solver_t *solver, vec_t *literals, counter_t *aux_start) { (void)aux_start; }
+void solver_amo_product(solver_t *solver, vec_t *literals, counter_t *aux_start) {
+
+#define X(i) literals->data[(i - 1)]
+    int n = literals->size;
+    int aux = (*aux_start);
+    int p = (int)ceil(sqrt(n));
+    int q = (int)(n / p);
+
+#define U(i) (aux + (i))
+#define V(i) (aux + p + (i))
+    vec_t *vec_u = vec_new();
+    vec_u = vec_reserve(vec_u, p);
+    for (int i = 1; i <= p; i++) {
+        vec_u->data[i - 1] = U(i);
+    }
+    solver_amo(solver, vec_u, NULL);
+    vec_free(vec_u);
+
+    vec_t *vec_v = vec_new();
+    vec_v = vec_reserve(vec_v, q);
+    for (int i = 1; i <= q; i++) {
+        vec_v->data[i - 1] = V(i);
+    }
+    solver_amo(solver, vec_v, NULL);
+    vec_free(vec_v);
+
+    for (int i = 1; i <= p; i++) {
+        for (int j = 1; j <= q; j++) {
+            int k = (i - 1) * q + j;
+
+            solver_add(solver, -X(k));
+            solver_add(solver, U(i));
+            solver_add(solver, 0);
+
+            solver_add(solver, -X(k));
+            solver_add(solver, V(j));
+            solver_add(solver, 0);
+        }
+    }
+
+    *aux_start = aux + p + q;
+#undef U
+#undef V
+#undef X
+}

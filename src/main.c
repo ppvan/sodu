@@ -79,13 +79,13 @@ void app_generate(application *app);
 void app_solve(application *app);
 
 enum board_mode { BOARD9x9 = 0, BOARD16x16, BOARD25x25 };
-enum algorithm_mode { AL_BINOMINAL = 0, AL_PRODUCT };
+enum algorithm_mode { AL_BINOMINAL = 0, AL_SEQUENTIAL, AL_PRODUCT };
 
 int main(void) {
     srand(time(0));
     options_t mode = options_new(2, "Demo", "Test");
     options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
-    options_t algorithm_mode = options_new(2, "BINOMINAL", "PRODUCT");
+    options_t algorithm_mode = options_new(3, "BINOMINAL", "SEQUENTIAL", "PRODUCT");
     appdata data = appdata_alloc();
     sodoku_t *sodoku = sodoku_generate(9);
 
@@ -246,7 +246,11 @@ void app_solve(application *app) {
         case AL_BINOMINAL: {
             sodoku_solve(app->sodoku, BINOMIAL);
             break;
+        case AL_SEQUENTIAL:
+            sodoku_solve(app->sodoku, SEQ);
+            break;
         case AL_PRODUCT:
+            sodoku_solve(app->sodoku, PRODUCT);
             break;
 
         default:

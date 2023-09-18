@@ -18,12 +18,12 @@ cd $BUILD_DIR
 cp --update -r ../kissat/build/libkissat.a $BUILD_DIR
 
 # Compile
-clang -c $SRC_FILES $CFLAGS
+gcc -c $SRC_FILES $CFLAGS
 
 OBJ_FILES=!(*_test|main).o
 
 # Link main program
-clang -o main.out main.o $OBJ_FILES $LDFLAGS
+gcc -o main.out main.o $OBJ_FILES $LDFLAGS
 
 # Link test
-clang -o core_test.out core_test.o $OBJ_FILES $LDFLAGS
+gcc -o core_test.out core_test.o $OBJ_FILES $LDFLAGS
