@@ -33,7 +33,7 @@ void run_test(const char *filename) {
         }
         // SKU_PRINT(s);
 
-        bool sat = sodoku_solve(s, BINOMIAL);
+        bool sat = sodoku_solve(s, SEQ);
 
         // SKU_PRINT(s);
         if (sat && sodoku_is_solution(s)) {

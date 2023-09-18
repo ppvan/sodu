@@ -5,7 +5,7 @@ shopt -s extglob
 mkdir -p ./build
 
 BUILD_DIR="$PWD/build"
-CFLAGS="-I../headers/ $(pkg-config --cflags sdl2 SDL2_image) -Wall -Wextra -ggdb"
+CFLAGS="-I../headers/ $(pkg-config --cflags sdl2 SDL2_image) -Wall -Wextra -ggdb -O3"
 LDFLAGS="-L. -lkissat -lm $(pkg-config --libs sdl2 SDL2_image)"
 
 SRC_FILES=../src/*.c

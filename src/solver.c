@@ -82,5 +82,35 @@ void solver_amo(solver_t *solver, vec_t *literals, counter_t *aux_start) {
         }
     }
 }
-void solver_amo_seq(solver_t *solver, vec_t *literals, counter_t *aux_start) { (void)aux_start; }
+void solver_amo_seq(solver_t *solver, vec_t *literals, counter_t *aux_start) {
+#define X(i) literals->data[(i - 1)]
+#define A(i) (aux + (i))
+    int aux = (*aux_start);
+    int n = literals->size;
+
+    solver_add(solver, -X(1));
+    solver_add(solver, A(1));
+    solver_add(solver, 0);
+
+    solver_add(solver, -X(n));
+    solver_add(solver, -A(n - 1));
+    solver_add(solver, 0);
+
+    for (int i = 2; i < n; i++) {
+        solver_add(solver, -X(i));
+        solver_add(solver, A(i));
+        solver_add(solver, 0);
+
+        solver_add(solver, -A(i - 1));
+        solver_add(solver, A(i));
+        solver_add(solver, 0);
+
+        solver_add(solver, -X(i));
+        solver_add(solver, -A(i - 1));
+        solver_add(solver, 0);
+    }
+#undef A
+#undef X
+    *aux_start = aux + n;
+}
 void solver_amo_product(solver_t *solver, vec_t *literals, counter_t *aux_start) { (void)aux_start; }
