@@ -98,9 +98,9 @@ font_t *font_init(SDL_Renderer *renderer, const char *filename) {
 
     memset(_filename, 0, BUF_SIZE);
     strcat(_filename, filename);
-    strcat(_filename, ".png");
+    strcat(_filename, ".bmp");
 
-    SDL_Surface *tmp = icp(IMG_Load(_filename));
+    SDL_Surface *tmp = icp(SDL_LoadBMP(_filename));
     font->tex = SDL_CreateTextureFromSurface(renderer, tmp);
     font->renderer = renderer;
     SDL_FreeSurface(tmp);

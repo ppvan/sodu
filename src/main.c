@@ -90,14 +90,8 @@ int main(void) {
     sodoku_t *sodoku = sodoku_generate(9);
 
     scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
-    int imgFlag = IMG_INIT_PNG;
-    if (!(IMG_Init(IMG_INIT_PNG) & imgFlag)) {
-        fprintf(stderr, "SDL_image: %s\n", IMG_GetError());
-        exit(EXIT_FAILURE);
-    }
-
     int flags = SDL_WINDOW_SHOWN;
-    SDL_Window *window = scp(SDL_CreateWindow("Hello SDL2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    SDL_Window *window = scp(SDL_CreateWindow("Sodoku Solver", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                               SCREEN_WIDTH, SCREEN_HEIGHT, flags));
     SDL_Renderer *renderer = scp(SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
 
