@@ -12,20 +12,16 @@
 #define BUF_SIZE 1024
 
 typedef struct {
-    double solve_time;
-    int variables;
-    int clauses;
-} statistics_t;
-
-typedef struct {
     int size;
     int *data;
 
     solver_t *solver;
+    int aux_index;
 } sodoku_t;
 
 typedef enum {
     BINOMIAL,
+    SEQ,
     PRODUCT,
 } strategy_t;
 
@@ -45,6 +41,7 @@ void sodoku_free(sodoku_t *s);
 sodoku_t *sodoku_load(const char *filename);
 sodoku_t *sodoku_load_str(int size, const char *str);
 sodoku_t *sodoku_generate(int size);
+int sodoku_auxnext(sodoku_t *s);
 
 bool sodoku_solve(sodoku_t *s, strategy_t strategy);
 

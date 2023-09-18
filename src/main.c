@@ -29,6 +29,13 @@
 #define SCREEN_HEIGHT 800
 
 #define STAT_PADING 16
+
+typedef struct {
+    char *solve_time;
+    char *variables;
+    char *clauses;
+} appdata;
+
 typedef struct {
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -46,6 +53,25 @@ typedef struct {
     options_t algrithm_mode;
     bool running;
 } application;
+
+appdata appdata_alloc() {
+    appdata data = {0};
+    data.solve_time = malloc(BUF_SIZE * sizeof(char));
+    data.variables = malloc(BUF_SIZE * sizeof(char));
+    data.clauses = malloc(BUF_SIZE * sizeof(char));
+
+    assert(data.solve_time && "Can't malloc data->solve_time");
+    assert(data.variables && "Can't malloc data->variables");
+    assert(data.clauses && "Can't malloc data->clauses");
+
+    return data;
+}
+
+void update_app_data(appdata *appdata, sodoku_t *s) {
+    sprintf(appdata->solve_time, "Time: %3.2f", s->solver->time);
+    sprintf(appdata->variables, "Vars: %zu", s->solver->vars);
+    sprintf(appdata->clauses, "Clauses: %zu", s->solver->clauses);
+}
 void update(application *app);
 void handle_event(application *app);
 void render(application *app);

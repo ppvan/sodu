@@ -1,4 +1,5 @@
 #include "core.h"
+#include "datatypes.h"
 #include "solver.h"
 #include "utils.h"
 #include <assert.h>
@@ -19,14 +20,14 @@ static inline int index_3d_to_1d(int size, int i, int j, int v) {
     return idx;
 }
 
+int sodoku_auxnext(sodoku_t *s) { return s->aux_index++; }
+
 static inline void index_1d_to_3d(int size, int idx, int *i, int *j, int *v) {
     *i = 1;
     *j = 1;
     *v = 1;
     idx--;
     *v = idx % size + 1;
-
-    // Calculate the remaining coordinates (i and j)
     idx /= size; // Remove v from the index
     if (idx == 0)
         return;
@@ -38,132 +39,17 @@ static inline void index_1d_to_3d(int size, int idx, int *i, int *j, int *v) {
 
     *i = idx + 1;
 }
-
-static inline void unique_ceil(sodoku_t *s) {
-    int size = s->size;
-    for (int i = 1; i <= size; i++) {
-        for (int j = 1; j <= size; j++) {
-            for (int v = 1; v <= size; v++) {
-                int idx = index_3d_to_1d(size, i, j, v);
-                solver_add(s->solver, idx);
-            }
-            solver_add(s->solver, 0);
-            for (int v = 1; v <= size; v++) {
-                for (int other_v = v + 1; other_v <= size; other_v++) {
-                    int idx1 = index_3d_to_1d(size, i, j, v);
-                    int idx2 = index_3d_to_1d(size, i, j, other_v);
-                    solver_add(s->solver, -idx1);
-                    solver_add(s->solver, -idx2);
-                    solver_add(s->solver, 0);
-                }
-            }
-        }
-    }
-}
-
-static inline void unique_row(sodoku_t *s) {
-    int size = s->size;
-    for (int i = 1; i <= size; i++) {
-        for (int v = 1; v <= size; v++) {
-            for (int j = 1; j <= size; j++) {
-                int idx = index_3d_to_1d(size, i, j, v);
-                solver_add(s->solver, idx);
-            }
-            solver_add(s->solver, 0);
-            for (int j = 1; j <= size; j++) {
-                for (int other_j = j + 1; other_j <= size; other_j++) {
-
-                    int idx1 = index_3d_to_1d(size, i, j, v);
-                    int idx2 = index_3d_to_1d(size, i, other_j, v);
-                    solver_add(s->solver, -idx1);
-                    solver_add(s->solver, -idx2);
-                    solver_add(s->solver, 0);
-                }
-            }
-        }
-    }
-}
-static inline void unique_col(sodoku_t *s) {
-    int size = s->size;
-    for (int j = 1; j <= size; j++) {
-        for (int v = 1; v <= size; v++) {
-            for (int i = 1; i <= size; i++) {
-                int idx = index_3d_to_1d(size, i, j, v);
-                solver_add(s->solver, idx);
-            }
-            solver_add(s->solver, 0);
-            for (int i = 1; i <= size; i++) {
-                for (int other_i = i + 1; other_i <= size; other_i++) {
-                    int idx1 = index_3d_to_1d(size, i, j, v);
-                    int idx2 = index_3d_to_1d(size, other_i, j, v);
-                    solver_add(s->solver, -idx1);
-                    solver_add(s->solver, -idx2);
-
-                    solver_add(s->solver, 0);
-                }
-            }
-        }
-    }
-}
-static inline void unique_box(sodoku_t *s) {
+/** Naive version, focus on correctness.
+ */
+bool sodoku_solve_internal(sodoku_t *s, solver_amo_t amo_func) {
     int size = s->size;
     int sr = sq_number_sqrt(size);
-    for (int sub_i = 1; sub_i < size; sub_i += sr) {
-        for (int sub_j = 1; sub_j < size; sub_j += sr) {
-            for (int v = 1; v <= size; v++) {
+    vec_t *vec = vec_new();
+    vec = vec_reserve(vec, size);
+    counter_t aux = size * size * size;
+    // counter_t counter = 0;
 
-                for (int i = sub_i; i < sub_i + sr; i++) {
-                    for (int j = sub_j; j < sub_j + sr; j++) {
-                        int idx = index_3d_to_1d(size, i, j, v);
-                        solver_add(s->solver, idx);
-                    }
-                }
-                solver_add(s->solver, 0);
-            }
-
-            // at most 1 val in sub-box
-            for (int v = 1; v <= size; v++) {
-
-                // iterate in sub-box
-                for (int i = sub_i; i < sub_i + sr; i++) {
-                    for (int j = sub_j; j < sub_j + sr; j++) {
-                        // kissat_add(solver, -index_3d_to_1d(size, i, j, v));
-
-                        for (int other_i = sub_i; other_i < sub_i + sr; other_i++) {
-                            for (int other_j = sub_j; other_j < sub_j + sr; other_j++) {
-                                if (other_i * sr + other_j <= i * sr + j) {
-                                    continue;
-                                }
-
-                                int idx1 = index_3d_to_1d(size, i, j, v);
-                                int idx2 = index_3d_to_1d(size, other_i, other_j, v);
-                                solver_add(s->solver, -idx1);
-                                solver_add(s->solver, -idx2);
-                                solver_add(s->solver, 0);
-
-                                // printf("%d => !%d\n", idx1, idx2);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-static inline void extract_proof(sodoku_t *s) {
-    int i, j, v;
-    int size = s->size;
-    for (int idx = 1; idx <= size * size * size; idx++) {
-        if (solver_value(s->solver, idx)) {
-            index_1d_to_3d(size, idx, &i, &j, &v);
-            SKU_AT(s, i - 1, j - 1) = v;
-        }
-    }
-}
-
-static inline void apply_defined_values(sodoku_t *s) {
-    int size = s->size;
+    // apply_defined_values(s);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
             if (SKU_AT(s, i, j) == 0)
@@ -174,20 +60,74 @@ static inline void apply_defined_values(sodoku_t *s) {
             solver_add(s->solver, 0);
         }
     }
-}
-/** Naive version, focus on correctness.
- */
-bool sodoku_solve_naive(sodoku_t *s) {
-    apply_defined_values(s);
-    unique_row(s);
-    unique_col(s);
-    unique_ceil(s);
-    unique_box(s);
+    //  unique_row(s);
+    for (int i = 1; i <= size; i++) {
+        for (int v = 1; v <= size; v++) {
+            for (int j = 1; j <= size; j++) {
+                int idx = index_3d_to_1d(size, i, j, v);
+                vec->data[j - 1] = idx;
+            }
+
+            solver_alo(s->solver, vec);
+            amo_func(s->solver, vec, &aux);
+        }
+    }
+
+    // unique_col(s);
+    for (int j = 1; j <= size; j++) {
+        for (int v = 1; v <= size; v++) {
+            for (int i = 1; i <= size; i++) {
+                int idx = index_3d_to_1d(size, i, j, v);
+                vec->data[i - 1] = idx;
+            }
+
+            solver_alo(s->solver, vec);
+            amo_func(s->solver, vec, &aux);
+        }
+    }
+    // unique_ceil(s);
+    for (int i = 1; i <= size; i++) {
+        for (int j = 1; j <= size; j++) {
+            for (int v = 1; v <= size; v++) {
+                int idx = index_3d_to_1d(size, i, j, v);
+                vec->data[v - 1] = idx;
+            }
+            solver_alo(s->solver, vec);
+            amo_func(s->solver, vec, &aux);
+        }
+    }
+    // unique_box(s);
+    int cnt = 0;
+    for (int sub_i = 1; sub_i < size; sub_i += sr) {
+        for (int sub_j = 1; sub_j < size; sub_j += sr) {
+            for (int v = 1; v <= size; v++) {
+
+                for (int i = sub_i; i < sub_i + sr; i++) {
+                    for (int j = sub_j; j < sub_j + sr; j++) {
+                        int idx = index_3d_to_1d(size, i, j, v);
+                        vec->data[cnt++] = idx;
+                    }
+                }
+
+                solver_alo(s->solver, vec);
+                amo_func(s->solver, vec, &aux);
+                cnt = 0;
+            }
+        }
+    }
+    vec_free(vec);
 
     if (!solver_solve(s->solver)) {
         return false;
     }
-    extract_proof(s);
+    // extract_proof(s);
+    int i, j, v;
+    for (int idx = 1; idx <= size * size * size; idx++) {
+        if (solver_value(s->solver, idx)) {
+            index_1d_to_3d(size, idx, &i, &j, &v);
+            SKU_AT(s, i - 1, j - 1) = v;
+        }
+    }
 
     return true;
 }
@@ -198,6 +138,7 @@ sodoku_t *sodoku_init(int size) {
     memset(s, 0, sizeof(sodoku_t));
 
     s->size = size;
+    s->aux_index = size * size * size + 1;
     // init data
     s->data = malloc(size * size * sizeof(int));
     assert(s->data && "Can't malloc s->data");
@@ -239,12 +180,17 @@ bool sodoku_solve(sodoku_t *s, strategy_t strategy) {
     switch (strategy) {
 
     case BINOMIAL: {
-        result = sodoku_solve_naive(s);
+        result = sodoku_solve_internal(s, solver_amo);
+        break;
+    }
+
+    case SEQ: {
+        result = sodoku_solve_internal(s, solver_amo_seq);
         break;
     }
 
     case PRODUCT: {
-        assert(0 && "Unimplemented.");
+        result = sodoku_solve_internal(s, solver_amo_product);
         break;
     }
     }
@@ -362,13 +308,80 @@ sodoku_t *sodoku_load_str(int size, const char *str) {
 static sodoku_t *generate_solution(int size) {
     // try and error to find this values.
     int max_retried = 10;
+    int sr = sq_number_sqrt(size);
+    vec_t *vec = vec_new();
+    vec = vec_reserve(vec, size);
     sodoku_t *s = NULL;
     while (max_retried--) {
         s = sodoku_init(size);
-        unique_row(s);
-        unique_col(s);
-        unique_ceil(s);
-        unique_box(s);
+        counter_t aux = size * size * size;
+
+        // apply_defined_values(s);
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (SKU_AT(s, i, j) == 0)
+                    continue;
+                // cnf require indx from 1 -> i + 1, j + 1
+                int idx = index_3d_to_1d(size, i + 1, j + 1, SKU_AT(s, i, j));
+                solver_add(s->solver, idx);
+                solver_add(s->solver, 0);
+            }
+        }
+        //  unique_row(s);
+        for (int i = 1; i <= size; i++) {
+            for (int v = 1; v <= size; v++) {
+                for (int j = 1; j <= size; j++) {
+                    int idx = index_3d_to_1d(size, i, j, v);
+                    vec->data[j - 1] = idx;
+                }
+
+                solver_alo(s->solver, vec);
+                solver_amo(s->solver, vec, &aux);
+            }
+        }
+
+        // unique_col(s);
+        for (int j = 1; j <= size; j++) {
+            for (int v = 1; v <= size; v++) {
+                for (int i = 1; i <= size; i++) {
+                    int idx = index_3d_to_1d(size, i, j, v);
+                    vec->data[i - 1] = idx;
+                }
+
+                solver_alo(s->solver, vec);
+                solver_amo(s->solver, vec, &aux);
+            }
+        }
+        // unique_ceil(s);
+        for (int i = 1; i <= size; i++) {
+            for (int j = 1; j <= size; j++) {
+                for (int v = 1; v <= size; v++) {
+                    int idx = index_3d_to_1d(size, i, j, v);
+                    vec->data[v - 1] = idx;
+                }
+                solver_alo(s->solver, vec);
+                solver_amo(s->solver, vec, &aux);
+            }
+        }
+        // unique_box(s);
+        int cnt = 0;
+        for (int sub_i = 1; sub_i < size; sub_i += sr) {
+            for (int sub_j = 1; sub_j < size; sub_j += sr) {
+                for (int v = 1; v <= size; v++) {
+
+                    for (int i = sub_i; i < sub_i + sr; i++) {
+                        for (int j = sub_j; j < sub_j + sr; j++) {
+                            int idx = index_3d_to_1d(size, i, j, v);
+                            vec->data[cnt++] = idx;
+                        }
+                    }
+
+                    solver_alo(s->solver, vec);
+                    solver_amo(s->solver, vec, &aux);
+                    cnt = 0;
+                }
+            }
+        }
 
         for (int i = 1; i <= CLUES; i++) {
             int val = math_rand() * size * size * size;
@@ -379,13 +392,20 @@ static sodoku_t *generate_solution(int size) {
         if (!solver_solve(s->solver)) {
             sodoku_free(s);
         } else {
-            extract_proof(s);
+            int i, j, v;
+            for (int idx = 1; idx <= size * size * size; idx++) {
+                if (solver_value(s->solver, idx)) {
+                    index_1d_to_3d(size, idx, &i, &j, &v);
+                    SKU_AT(s, i - 1, j - 1) = v;
+                }
+            }
             // reset solver for solving step
             solver_reset(s->solver);
             break;
         }
     }
 
+    vec_free(vec);
     assert(max_retried >= 0 && "No solution found.");
 
     return s;

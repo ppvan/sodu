@@ -1,4 +1,5 @@
 #include "solver.h"
+#include "datatypes.h"
 #include "kissat.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,7 +13,7 @@ solver_t *solver_new() {
     kissat = kissat_init();
     kissat_set_option(kissat, "quiet", 1);
     kissat_set_option(kissat, "sat", 1);
-    kissat_set_option(kissat, "seed", rand());
+    // kissat_set_option(kissat, "seed", rand());
 
     solver->kissat = kissat;
     solver->usable = true;
@@ -28,7 +29,6 @@ void solver_reset(solver_t *solver) {
     solver->kissat = kissat_init();
     kissat_set_option(solver->kissat, "quiet", 1);
     kissat_set_option(solver->kissat, "sat", 1);
-    kissat_set_option(solver->kissat, "seed", rand());
 
     solver->time = 0;
     solver->clauses = 0;
@@ -63,3 +63,24 @@ bool solver_value(solver_t *solver, int lit) {
     int val = kissat_value(solver->kissat, lit);
     return val == lit;
 }
+
+void solver_alo(solver_t *solver, vec_t *literals) {
+    for (int i = 0; i < literals->size; i++) {
+        solver_add(solver, literals->data[i]);
+    }
+
+    solver_add(solver, 0);
+}
+void solver_amo(solver_t *solver, vec_t *literals, counter_t *aux_start) {
+    (void)aux_start;
+
+    for (int i = 0; i < literals->size; i++) {
+        for (int j = i + 1; j < literals->size; j++) {
+            solver_add(solver, -literals->data[i]);
+            solver_add(solver, -literals->data[j]);
+            solver_add(solver, 0);
+        }
+    }
+}
+void solver_amo_seq(solver_t *solver, vec_t *literals, counter_t *aux_start) { (void)aux_start; }
+void solver_amo_product(solver_t *solver, vec_t *literals, counter_t *aux_start) { (void)aux_start; }

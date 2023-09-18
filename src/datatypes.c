@@ -1,5 +1,4 @@
 #include "datatypes.h"
-#include "core.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,20 +28,44 @@ void options_free(options_t options) {
 }
 char *option_current(options_t options) { return options.options[options.current]; }
 
-appdata appdata_alloc() {
-    appdata data = {0};
-    data.solve_time = malloc(BUF_SIZE * sizeof(char));
-    data.variables = malloc(BUF_SIZE * sizeof(char));
-    data.clauses = malloc(BUF_SIZE * sizeof(char));
-
-    assert(data.solve_time && "Can't malloc data->solve_time");
-    assert(data.variables && "Can't malloc data->variables");
-    assert(data.clauses && "Can't malloc data->clauses");
-
-    return data;
+vec_t *vec_new() {
+    vec_t *v = malloc(sizeof(vec_t));
+    memset(v, 0, sizeof(vec_t));
+    v->data = malloc(VEC_DEFAULT_SIZE * sizeof(int));
+    v->capacity = VEC_DEFAULT_SIZE;
+    v->size = 0;
+    return v;
 }
-void update_app_data(appdata *appdata, sodoku_t *s) {
-    sprintf(appdata->solve_time, "Time: %3.2f", s->solver->time);
-    sprintf(appdata->variables, "Vars: %zu", s->solver->vars);
-    sprintf(appdata->clauses, "Clauses: %zu", s->solver->clauses);
+vec_t *vec_reserve(vec_t *vec, int size) {
+    vec->capacity = size;
+    vec->size = size;
+    vec->data = realloc(vec->data, vec->capacity * sizeof(int));
+
+    return vec;
+}
+
+vec_t *vec_append(vec_t *vec, int data) {
+    if (vec->size >= vec->capacity) {
+        vec->capacity *= 2;
+
+        vec->data = realloc(vec->data, vec->capacity * sizeof(int));
+        assert(vec->data);
+    }
+
+    vec->data[vec->size++] = data;
+
+    return vec;
+}
+
+void vec_free(vec_t *vec) {
+    free(vec->data);
+    free(vec);
+}
+
+void vec_print(vec_t *vec) {
+    for (int i = 0; i < vec->size; i++) {
+        printf("%d ", vec->data[i]);
+    }
+
+    printf("\n");
 }
