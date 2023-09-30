@@ -130,6 +130,7 @@ void label(Rect bounds, const char *text, uint32_t color) {
 
 void bglabel(Rect bounds, const char *text, uint32_t color) {
     rect(bounds, color);
+    scc(SDL_SetTextureColorMod(font->tex, 0, 0, 0));
     render_text(font, bounds, text, CENTER);
 }
 
@@ -375,22 +376,24 @@ bool combox(Rect bounds, char *text, options_t *options, int id) {
     if (uistate->hotitem == id) {
         if (uistate->activeitem == id) {
             // Button is both 'hot' and 'active'
-            rect(pre, 0xDBB8D7);
-            rect(after, 0xDBB8D7);
+            rect(pre, 0x986C6A);
+            rect(after, 0x986C6A);
         } else {
             rect(pre, 0x8D7471);
             rect(after, 0x8D7471);
         }
+
+        label(pre, text, 0xffffff);
+        label(after, option_current(*options), 0xffffff);
     } else {
         // button normal
-        rect(pre, 0xDBB8D7);
-        rect(after, 0xDBB8D7);
+        rect(pre, 0x986C6A);
+        rect(after, 0x986C6A);
         // draw_rect(bounds, 0xff0000);
+        label(pre, text, 0x000000);
+        label(after, option_current(*options), 0x000000);
     }
     // render_text(font, bounds, text, CENTER);
-
-    label(pre, text, 0x000000);
-    label(after, option_current(*options), 0x000000);
 
     if (uistate->hotitem == id && uistate->activeitem == id && uistate->mousedown == 0) {
         options->current++;
@@ -414,23 +417,27 @@ int button(Rect bounds, const char *text, int id) {
         }
     };
 
+    Rect border = {.x = bounds.x - 1, .y = bounds.y - 1, .w = bounds.w + 2, .h = bounds.h + 2};
+    rect(border, 0x000000);
     // render btn
     if (uistate->hotitem == id) {
         if (uistate->activeitem == id) {
             // Button is both 'hot' and 'active'
             Rect pressed = {.x = bounds.x + 1, .y = bounds.y + 1, .w = bounds.w, .h = bounds.h};
-            rect(pressed, 0xDBB8D7);
+            rect(pressed, 0x3C1A15);
         } else {
             Rect hover = {.x = bounds.x, .y = bounds.y, .w = bounds.w, .h = bounds.h};
-            rect(hover, 0x8D7471);
+            rect(hover, 0x2E1410);
         }
+        label(bounds, text, 0xffffff);
     } else {
         // button normal
-        rect(bounds, 0xDBB8D7);
+        rect(bounds, 0x986C6A);
+        label(bounds, text, 0x000000);
+
         // draw_rect(bounds, 0xff0000);
     }
     // render_text(font, bounds, text, CENTER);
-    label(bounds, text, 0x000000);
 
     // click
     if (uistate->hotitem == id && uistate->activeitem == id && uistate->mousedown == 0) {

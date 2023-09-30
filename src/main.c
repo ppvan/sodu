@@ -52,6 +52,9 @@ typedef struct {
     options_t mode;
     options_t board_mode;
     options_t algrithm_mode;
+    char *solve_time;
+    char *variables;
+    char *clauses;
     bool running;
 } application;
 
@@ -68,11 +71,6 @@ appdata appdata_init() {
     return data;
 }
 
-void update_app_data(appdata *appdata, sodoku_t *s) {
-    sprintf(appdata->solve_time, "Time: %3.2f", s->solver->time);
-    sprintf(appdata->variables, "Vars: %zu", s->solver->vars);
-    sprintf(appdata->clauses, "Clauses: %zu", s->solver->clauses);
-}
 void update(application *app);
 void handle_event(application *app);
 void render(application *app);
@@ -84,18 +82,22 @@ enum algorithm_mode { AL_BINOMINAL = 0, AL_SEQUENTIAL, AL_PRODUCT };
 
 int main(void) {
     srand(time(0));
+    // application state.
     options_t mode = options_new(2, "Demo", "Test");
     options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
     options_t algorithm_mode = options_new(3, "BINOMINAL", "SEQUENTIAL", "PRODUCT");
-    appdata data = appdata_init();
-    sodoku_t *sodoku = sodoku_generate(36);
+    char *solve_time = malloc(TEXT_BUF_SIZE * sizeof(char));
+    char *variables = malloc(TEXT_BUF_SIZE * sizeof(char));
+    char *clauses = malloc(TEXT_BUF_SIZE * sizeof(char));
+    sodoku_t *sodoku = sodoku_generate(9);
 
+    // init SDL2.
     scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
-    int flags = SDL_WINDOW_SHOWN;
     SDL_Window *window = scp(SDL_CreateWindow("Sodoku Solver", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                              SCREEN_WIDTH, SCREEN_HEIGHT, flags));
+                                              SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN));
     SDL_Renderer *renderer = scp(SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC));
 
+    // init imgui
     font_t *font = font_init(renderer, "./assets/octin");
     uistate_t uistate = {0};
     imgui_init(renderer, &uistate, font);
@@ -105,20 +107,24 @@ int main(void) {
         .renderer = renderer,
         .font = font,
         .uistate = &uistate,
-        .data = data,
         .sodoku = sodoku,
         .mode = mode,
         .board_mode = board_mode,
         .algrithm_mode = algorithm_mode,
+        .solve_time = solve_time,
+        .variables = variables,
+        .clauses = clauses,
         .running = true,
     };
 
+    // main loop
     while (app.running) {
         update(&app);
         handle_event(&app);
         render(&app);
     }
 
+    // clean up
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -187,11 +193,11 @@ void render(application *app) {
     sodoku_board(app->sodoku, layout_slot());
     layout_end();
 
-    Rect controls = {bounds.x + bounds.w, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
+    Rect controls = {bounds.x + bounds.w + 2, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
     rect(controls, 0x141A0E);
 
     Rect combos = {controls.x, controls.y, controls.w, controls.h / 4};
-    layout_begin(VERTICAL, combos, 2, 4);
+    layout_begin(VERTICAL, combos, 2, 3);
     if (combox(layout_slot(), "Board", &(app->board_mode), GEN_ID)) {
         app_generate(app);
     }
@@ -200,41 +206,13 @@ void render(application *app) {
 
     Rect stats = {controls.x, controls.y + controls.h / 4 + 4, controls.w, controls.h / 4};
     layout_begin(VERTICAL, stats, 3, 3);
-    bglabel(layout_slot(), app->data.solve_time, 0xDBB8D7);
-    bglabel(layout_slot(), app->data.variables, 0xDBB8D7);
-    bglabel(layout_slot(), app->data.clauses, 0xDBB8D7);
+    bglabel(layout_slot(), app->solve_time, 0x986C6A);
+    bglabel(layout_slot(), app->variables, 0x986C6A);
+    bglabel(layout_slot(), app->clauses, 0x986C6A);
     layout_end();
 
     Rect btns = {controls.x, controls.h - controls.h / 16 + 4, controls.w, controls.h / 16};
     layout_begin(HORIZONTAL, btns, 2, 6);
-    if (button(layout_slot(), "Generate", GEN_ID)) {
-        app_generate(app);
-    }
-    if (button(layout_slot(), "Solve", GEN_ID)) {
-        app_solve(app);
-    }
-    layout_end();
-
-    imgui_end();
-    return;
-
-    layout_begin(VERTICAL, controls, 10, 3);
-
-    if (combox(layout_slot(), "Board", &(app->board_mode), GEN_ID)) {
-        app_generate(app);
-    }
-    combox(layout_slot(), "ALG", &(app->algrithm_mode), GEN_ID);
-    bglabel(layout_slot(), app->data.solve_time, 0xDBB8D7);
-    bglabel(layout_slot(), app->data.clauses, 0xDBB8D7);
-    bglabel(layout_slot(), app->data.variables, 0xDBB8D7);
-
-    // button(layout_slot(), "Controls", GEN_ID);
-    // button(layout_slot(), "Controls", GEN_ID);
-
-    bglabel(layout_slot(), "", 0xDBB8D7);
-    bglabel(layout_slot(), "", 0xDBB8D7);
-
-    button(layout_slot(), "Export", GEN_ID);
     if (button(layout_slot(), "Generate", GEN_ID)) {
         app_generate(app);
     }
@@ -287,6 +265,7 @@ void app_solve(application *app) {
 }
 
 void update(application *app) {
-    update_app_data(&app->data, app->sodoku);
-    ;
+    sprintf(app->solve_time, "Time: %3.2f", app->sodoku->solver->time);
+    sprintf(app->variables, "Vars: %zu", app->sodoku->solver->vars);
+    sprintf(app->clauses, "Clauses: %zu", app->sodoku->solver->clauses);
 }
