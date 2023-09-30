@@ -36,6 +36,7 @@ void solver_reset(solver_t *solver) {
     solver->vars = 0;
     solver->usable = true;
 }
+
 bool solver_solve(solver_t *solver) {
 
     if (!solver->usable) {
@@ -50,6 +51,7 @@ bool solver_solve(solver_t *solver) {
 
     return true;
 }
+
 void solver_add(solver_t *solver, int lit) {
     kissat_add(solver->kissat, lit);
 
@@ -83,6 +85,7 @@ void solver_amo(solver_t *solver, vec_t *literals, counter_t *aux_start) {
         }
     }
 }
+
 void solver_amo_seq(solver_t *solver, vec_t *literals, counter_t *aux_start) {
 #define X(i) literals->data[(i - 1)]
 #define A(i) (aux + (i))
@@ -112,8 +115,9 @@ void solver_amo_seq(solver_t *solver, vec_t *literals, counter_t *aux_start) {
     }
 #undef A
 #undef X
-    *aux_start = aux + n;
+    *aux_start = aux + n - 1;
 }
+
 void solver_amo_product(solver_t *solver, vec_t *literals, counter_t *aux_start) {
 
 #define X(i) literals->data[(i - 1)]

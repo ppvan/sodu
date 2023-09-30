@@ -5,7 +5,7 @@ shopt -s extglob
 mkdir -p ./build
 
 BUILD_DIR="$PWD/build"
-CFLAGS="-I../headers/ $(pkg-config --cflags sdl2) -Wall -Wextra -ggdb -O3"
+CFLAGS="-I../headers/ $(pkg-config --cflags sdl2) -Wall -Wextra -ggdb"
 LDFLAGS="-L. -lkissat -lm $(pkg-config --libs sdl2)"
 
 SRC_FILES=../src/*.c
@@ -23,7 +23,7 @@ gcc -c $SRC_FILES $CFLAGS
 OBJ_FILES=!(*_test|main).o
 
 # Link main program
-# gcc -o main.out main.o $OBJ_FILES $LDFLAGS
+gcc -o main.out main.o $OBJ_FILES $LDFLAGS
 
 # Link test
 gcc -o core_test.out core_test.o $OBJ_FILES $LDFLAGS

@@ -158,8 +158,8 @@ void render_text_center(font_t *font, Vec2i pos, const char *str) {
             assert(0 && "Unimplemented");
         }
 
-        src.w = font->chars[ch].w + font->chars[ch].xoff;
-        src.h = font->chars[ch].h + font->chars[ch].yoff;
+        src.w = (font->chars[ch].w + font->chars[ch].xoff);
+        src.h = (font->chars[ch].h + font->chars[ch].yoff);
 
         width += src.w;
     }

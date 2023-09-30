@@ -68,7 +68,7 @@ bool point_in_rect(Vec2i pos, Rect rect) {
 void sodoku_board(sodoku_t *sodoku, Rect bounds) {
 
     int size = sodoku->size;
-    int gap = 2;
+    int gap = 1;
     int sub_gap = 1;
     char ceil_data[100];
     int sr = sq_number_sqrt(size);
@@ -79,8 +79,12 @@ void sodoku_board(sodoku_t *sodoku, Rect bounds) {
     for (int i = 0; i < sr; i++) {
         layout_begin(HORIZONTAL, layout_slot(), sr, gap);
         for (int j = 0; j < sr; j++) {
-
             layout_begin(VERTICAL, layout_slot(), sr, sub_gap);
+
+            // rect(layout_slot(), 0xff00ff);
+            // layout_end();
+
+            // continue;
             for (int s_i = 0; s_i < sr; s_i++) {
                 // int id = GEN_ID + (i * sr + j + 1);
                 layout_begin(HORIZONTAL, layout_slot(), sr, sub_gap);
@@ -88,6 +92,10 @@ void sodoku_board(sodoku_t *sodoku, Rect bounds) {
                     // int subid = id * GEN_ID + (s_i * sr + s_j + 1);
                     // button(layout_slot(), "10", subid);
                     Rect c = layout_slot();
+                    // rect(c, 0xffffff);
+                    // layout_end();
+
+                    // continue;
 
                     if (SKU_AT(sodoku, sr * i + s_i, sr * j + s_j) == 0) {
                         rect(c, 0xB1B1E7);
@@ -117,7 +125,7 @@ void label(Rect bounds, const char *text, uint32_t color) {
     // rect(bounds, color);
     scc(SDL_SetTextureColorMod(font->tex, r, g, b));
     render_text(font, bounds, text, CENTER);
-    scc(SDL_SetTextureColorMod(font->tex, r, g, b));
+    // scc(SDL_SetTextureColorMod(font->tex, r, g, b));
 }
 
 void bglabel(Rect bounds, const char *text, uint32_t color) {
@@ -346,14 +354,14 @@ bool combox(Rect bounds, char *text, options_t *options, int id) {
     Rect pre = {
         .x = bounds.x,
         .y = bounds.y,
-        .w = bounds.w / 2 - 2,
+        .w = bounds.w / 3 - 2,
         .h = bounds.h,
     };
 
     Rect after = {
-        .x = bounds.x + bounds.w / 2 + 2,
+        .x = bounds.x + bounds.w / 3 + 2,
         .y = bounds.y,
-        .w = bounds.w / 2,
+        .w = bounds.w * 2 / 3,
         .h = bounds.h,
     };
 

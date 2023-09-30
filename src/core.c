@@ -20,8 +20,6 @@ static inline int index_3d_to_1d(int size, int i, int j, int v) {
     return idx;
 }
 
-int sodoku_auxnext(sodoku_t *s) { return s->aux_index++; }
-
 static inline void index_1d_to_3d(int size, int idx, int *i, int *j, int *v) {
     *i = 1;
     *j = 1;

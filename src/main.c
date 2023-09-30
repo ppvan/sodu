@@ -25,8 +25,8 @@
 #include <string.h>
 #include <time.h>
 
-#define SCREEN_WIDTH 1200
-#define SCREEN_HEIGHT 800
+#define SCREEN_WIDTH 1300
+#define SCREEN_HEIGHT 960
 
 #define STAT_PADING 16
 #define TEXT_BUF_SIZE 128
@@ -88,7 +88,7 @@ int main(void) {
     options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
     options_t algorithm_mode = options_new(3, "BINOMINAL", "SEQUENTIAL", "PRODUCT");
     appdata data = appdata_init();
-    sodoku_t *sodoku = sodoku_generate(9);
+    sodoku_t *sodoku = sodoku_generate(36);
 
     scc(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO));
     int flags = SDL_WINDOW_SHOWN;
@@ -182,12 +182,42 @@ void handle_event(application *app) {
 void render(application *app) {
 
     imgui_begin();
-    Rect bounds = {4, 4, SCREEN_HEIGHT - 8, SCREEN_HEIGHT - 8};
+    Rect bounds = {4, 4, SCREEN_HEIGHT - 4, SCREEN_HEIGHT - 4};
     layout_begin(HORIZONTAL, bounds, 1, 0);
     sodoku_board(app->sodoku, layout_slot());
     layout_end();
 
-    Rect controls = {bounds.x + bounds.w + 2, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
+    Rect controls = {bounds.x + bounds.w, 4, SCREEN_WIDTH - bounds.x - bounds.w - 6, SCREEN_HEIGHT - 10};
+    rect(controls, 0x141A0E);
+
+    Rect combos = {controls.x, controls.y, controls.w, controls.h / 4};
+    layout_begin(VERTICAL, combos, 2, 4);
+    if (combox(layout_slot(), "Board", &(app->board_mode), GEN_ID)) {
+        app_generate(app);
+    }
+    combox(layout_slot(), "ALG", &(app->algrithm_mode), GEN_ID);
+    layout_end();
+
+    Rect stats = {controls.x, controls.y + controls.h / 4 + 4, controls.w, controls.h / 4};
+    layout_begin(VERTICAL, stats, 3, 3);
+    bglabel(layout_slot(), app->data.solve_time, 0xDBB8D7);
+    bglabel(layout_slot(), app->data.variables, 0xDBB8D7);
+    bglabel(layout_slot(), app->data.clauses, 0xDBB8D7);
+    layout_end();
+
+    Rect btns = {controls.x, controls.h - controls.h / 16 + 4, controls.w, controls.h / 16};
+    layout_begin(HORIZONTAL, btns, 2, 6);
+    if (button(layout_slot(), "Generate", GEN_ID)) {
+        app_generate(app);
+    }
+    if (button(layout_slot(), "Solve", GEN_ID)) {
+        app_solve(app);
+    }
+    layout_end();
+
+    imgui_end();
+    return;
+
     layout_begin(VERTICAL, controls, 10, 3);
 
     if (combox(layout_slot(), "Board", &(app->board_mode), GEN_ID)) {
