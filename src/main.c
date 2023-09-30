@@ -58,33 +58,20 @@ typedef struct {
     bool running;
 } application;
 
-appdata appdata_init() {
-    appdata data = {0};
-    data.solve_time = malloc(TEXT_BUF_SIZE * sizeof(char));
-    data.variables = malloc(TEXT_BUF_SIZE * sizeof(char));
-    data.clauses = malloc(TEXT_BUF_SIZE * sizeof(char));
-
-    assert(data.solve_time && "Can't malloc data->solve_time");
-    assert(data.variables && "Can't malloc data->variables");
-    assert(data.clauses && "Can't malloc data->clauses");
-
-    return data;
-}
-
 void update(application *app);
 void handle_event(application *app);
 void render(application *app);
 void app_generate(application *app);
 void app_solve(application *app);
 
-enum board_mode { BOARD9x9 = 0, BOARD16x16, BOARD25x25 };
+enum board_mode { BOARD9x9 = 0, BOARD16x16, BOARD25x25, BOARD36x36 };
 enum algorithm_mode { AL_BINOMINAL = 0, AL_SEQUENTIAL, AL_PRODUCT };
 
 int main(void) {
     srand(time(0));
     // application state.
     options_t mode = options_new(2, "Demo", "Test");
-    options_t board_mode = options_new(3, "9x9", "16x16", "25x25");
+    options_t board_mode = options_new(4, "9x9", "16x16", "25x25", "36x36");
     options_t algorithm_mode = options_new(3, "BINOMINAL", "SEQUENTIAL", "PRODUCT");
     char *solve_time = malloc(TEXT_BUF_SIZE * sizeof(char));
     char *variables = malloc(TEXT_BUF_SIZE * sizeof(char));
@@ -237,6 +224,13 @@ void app_generate(application *app) {
         break;
     case BOARD25x25:
         app->sodoku = sodoku_generate(25);
+        break;
+    case BOARD36x36:
+        app->sodoku = sodoku_generate(36);
+        break;
+    default:
+        assert(0 && "Unreachable");
+        break;
     }
 }
 
