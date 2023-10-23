@@ -11,8 +11,8 @@ LDFLAGS="-L. -lkissat -lm $(pkg-config --libs sdl2)"
 SRC_FILES=../src/*.c
 
 # Build sub-project
-cd ./kissat/
-make -C ./build
+# cd "$PWD/kissat/"
+make -C "$PWD/kissat/build"
 
 cd $BUILD_DIR
 cp --update -r ../kissat/build/libkissat.a $BUILD_DIR
