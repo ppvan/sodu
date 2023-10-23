@@ -1,6 +1,5 @@
 #include "utils.h"
 #include <SDL.h>
-#include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -15,15 +14,6 @@ void scc(int code) {
 void *scp(void *handler) {
     if (handler == NULL) {
         fprintf(stderr, "SDL Error: %s\n", SDL_GetError());
-        exit(EXIT_FAILURE);
-    }
-
-    return handler;
-}
-
-void *icp(void *handler) {
-    if (handler == NULL) {
-        fprintf(stderr, "Image Error: %s\n", IMG_GetError());
         exit(EXIT_FAILURE);
     }
 

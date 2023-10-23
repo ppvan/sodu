@@ -8,13 +8,11 @@
 
 #include <SDL.h>
 #include <SDL2/SDL_events.h>
-#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
 #include <SDL_error.h>
 #include <SDL_events.h>
-#include <SDL_image.h>
 #include <SDL_rect.h>
 #include <SDL_render.h>
 #include <SDL_video.h>

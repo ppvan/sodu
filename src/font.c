@@ -1,7 +1,6 @@
 #include "font.h"
 #include "la.h"
 #include "utils.h"
-#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
@@ -100,7 +99,7 @@ font_t *font_init(SDL_Renderer *renderer, const char *filename) {
     strcat(_filename, filename);
     strcat(_filename, ".bmp");
 
-    SDL_Surface *tmp = icp(SDL_LoadBMP(_filename));
+    SDL_Surface *tmp = scp(SDL_LoadBMP(_filename));
     font->tex = SDL_CreateTextureFromSurface(renderer, tmp);
     font->renderer = renderer;
     SDL_FreeSurface(tmp);
