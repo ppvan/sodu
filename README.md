@@ -6,12 +6,13 @@ A sodoku solver using sat encoding
 
 > Only test on Linux, i don't have a Window machine and install SDL2 on Windows is so much harder.
 ```
+git clone https://github.com/ppvan/sodu
+git init
+git submodule update
+
 ./build.sh && ./build/main.out
 ```
 
-# TODO
+# Preview
 
-- [x] create generate function
-- [x] Draw sodoku board
-- [ ] Implement awsome WFC [https://github.com/MorvanZhou/sudoku.git](https://github.com/MorvanZhou/sudoku.git)
-- [x] Optimize naative algorithm.
+![Image](./preview.gif)
